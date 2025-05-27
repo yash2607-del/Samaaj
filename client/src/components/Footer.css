@@ -1,0 +1,39 @@
+.footer-shadow {
+  background-color: #121212;
+  color: #ccc;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 2rem 0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.footer-shadow p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #aaaaaa;
+}
+
+.footer-shadow a {
+  color: #fb8b24;
+  margin: 0 0.6rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.footer-shadow a:hover {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(251, 139, 36, 0.6);
+}
+
+.footer-shadow div {
+  margin-top: 0.5rem;
+}
+
+/* Optional responsive tweak */
+@media (max-width: 576px) {
+  .footer-shadow a {
+    display: inline-block;
+    margin: 0.5rem 0.4rem;
+  }
+}

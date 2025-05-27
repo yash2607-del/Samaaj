@@ -1,0 +1,67 @@
+.card-stack-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  gap: 2rem;
+}
+.card-stack {
+  position: relative;
+  background: white;
+  color: #222;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 70%;
+  max-width: 500px;
+  min-height: 350px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  margin-left: 1.5rem;
+}
+
+.card-stack-container {
+  flex: 1;
+  position: relative;
+  padding-left: 40px;
+  border-left: 3px solid #fb8b24;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+
+.hovered-description {
+  width: 500px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  position: sticky;
+  top: 150px;
+    border-color: #fb8b24;
+  height: 12rem;
+  opacity: 0;
+  transform: translateX(20px);
+  animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.hovered-description h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: #222;
+}
+
+.hovered-description p {
+  margin: 0;
+  color: #444;
+  line-height: 1.5;
+}
