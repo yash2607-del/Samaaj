@@ -39,7 +39,7 @@ const Navbar = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-custom fixed-top">
       <div className="container">
-        <a className="navbar-brand text-golden fw-bold" href="#home">Samaaj</a>
+        <a className="navbar-brand text-golden fw-bold display-4" href="#home">Samaaj</a>
         <button
           className="navbar-toggler"
           type="button"
