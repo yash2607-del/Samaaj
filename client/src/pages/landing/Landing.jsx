@@ -9,10 +9,10 @@ import Footer from '../../components/Footer';
 
 const Landing = () => {
   const cards = [
-    { id: 1, image: img1, title: 'Card Title 1', description: 'This is the first card description.' },
-    { id: 2, image: img1, title: 'Card Title 2', description: 'This is the second card description.' },
-    { id: 3, image: img1, title: 'Card Title 3', description: 'This is the third card description.' },
-    { id: 4, image: img1, title: 'Card Title 4', description: 'This is the fourth card description.' },
+    { id: 1, image: img1, title: 'Real-Time Issue Reporting', description: 'Allow citizens to report problems (e.g., potholes, garbage, street lights) with location, photos, and descriptions — directly from their devices.' },
+    { id: 2, image: img1, title: 'Location-Based Tracking', description: 'Users can view issues on a map, filter by category or status, and track progress in real time using geotagged submissions.' },
+    { id: 3, image: img1, title: 'Verified Moderator Dashboard', description: 'Moderators can review, verify, and assign issues to concerned departments through a secure dashboard with role-based access.' },
+    { id: 4, image: img1, title: 'Community Transparency', description: 'Showcase resolved and in-progress issues to build trust, accountability, and encourage citizen participation.' },
   ];
 
   return (
@@ -24,23 +24,24 @@ const Landing = () => {
         <div className="hero-text text-center">
           <div className="overlay">
             <h1 className="display-4 text-golden fw-bold">Welcome to Samaaj</h1>
-            <p className="lead text-white">Empowering communities through technology</p>
+            <h3 className="text-white ">Raise . Resolve . Reform</h3>
           </div>
         </div>
       </section>
 
-      <section id="features" className="features-section py-5 text-white">
+      <section id="features" className="features-section bg-white py-5 text-white">
         <div className="container">
           <h2 className="text-center mb-5 text-golden">Features</h2>
           <Card cards={cards} />
         </div>
       </section>
 
-      <section id="about" className="about-section d-flex justify-content-center align-items-center bg-light text-golden vh-100">
+      <section id="about" className="about-section d-flex justify-content-center align-items-center bg-light text-golden py-5">
         <div className="text-center">
           <h2 className="mb-4">About Us</h2>
           <p className="lead text-dark">
-            Samaaj is a platform dedicated to community development using modern digital tools and collaboration.
+Samaaj – Bridging Citizens and Solutions for a Better Community.
+Samaaj is more than just a civic issue reporting platform—it’s a bridge between citizens and the change they wish to see. With a simple, user-friendly interface, Samaaj empowers individuals to voice their concerns, report local issues, and track progress transparently. Moderators respond in real-time, ensuring accountability and swift resolution. By fostering active community participation and streamlined communication, Samaaj brings people and solutions together to build cleaner, safer, and more responsive neighborhoods.
           </p>
         </div>
       </section>
