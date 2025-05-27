@@ -4,6 +4,7 @@ import './landing.css';
 import img1 from '../../assets/img1.jpg';
 import ImageSlider from '../../components/ImageSlider';
 import Card from '../../components/Card';
+import img4 from '../../assets/img4.jpg';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
@@ -37,32 +38,58 @@ const Landing = () => {
       </section>
 
       <section id="about" className="about-section d-flex justify-content-center align-items-center bg-light text-golden py-5">
-        <div className="text-center">
-          <h2 className="mb-4">About Us</h2>
-          <p className="lead text-dark">
-Samaaj – Bridging Citizens and Solutions for a Better Community.
-Samaaj is more than just a civic issue reporting platform—it’s a bridge between citizens and the change they wish to see. With a simple, user-friendly interface, Samaaj empowers individuals to voice their concerns, report local issues, and track progress transparently. Moderators respond in real-time, ensuring accountability and swift resolution. By fostering active community participation and streamlined communication, Samaaj brings people and solutions together to build cleaner, safer, and more responsive neighborhoods.
-          </p>
-        </div>
-      </section>
+  <div className="text-center" style={{ maxWidth: '800px' }}>
+    <h2 className="mb-4">About Us</h2>
+    <p className="lead text-dark">
+      <strong>Samaaj</strong> – Bridging Citizens and Solutions for a Better Community.<br /><br />
+      Samaaj is more than just a civic issue reporting platform—it’s a bridge between citizens and the change they wish to see. With a simple, user-friendly interface, Samaaj empowers individuals to voice their concerns, report local issues, and track progress transparently. Moderators respond in real-time, ensuring accountability and swift resolution. By fostering active community participation and streamlined communication, Samaaj brings people and solutions together to build cleaner, safer, and more responsive neighborhoods.
+    </p>
+  </div>
+</section>
 
-      <section id="contact" className="contact-section d-flex justify-content-center align-items-center">
-        <div className="contact-card text-center">
-          <h2 className="mb-3 text-golden">Stay Connected</h2>
-          <p className="mb-4 text-light">Enter your email and we’ll get back to you.</p>
-          <form>
-            <input
-              type="email"
-              className="form-control mb-3 mx-auto"
-              placeholder="Enter your email"
-              required
-            />
-            <button type="submit" className="contact-btn">
-              Submit
-            </button>
-          </form>
+
+<section id="contact" className="contact-section py-5 bg-white text-dark">
+  <div className="container ">
+    <div className="card bg-light rounded shadow p-4">
+      <div className="row align-items-center">
+        
+        {/* Logo */}
+        <div className="col-md-4 text-center mb-4 mb-md-0">
+          <img
+            src={img4}
+            alt="Samaaj Logo"
+            className="img-fluid rounded shadow-sm"
+            style={{ width: '140px', height: '140px', objectFit: 'cover' }}
+          />
         </div>
-      </section>
+
+        {/* Form & Text */}
+        <div className="col-md-8">
+          <div className="text-md-start text-center">
+            <h2 className="mb-3 text-dark fw-bold">Stay Connected</h2>
+            <p className="mb-4 text-secondary fs-5">
+              Enter your email and we’ll get back to you with updates, news, and more.
+            </p>
+            <form className="d-flex flex-column flex-sm-row gap-3">
+              <input
+                type="email"
+                className="form-control"
+                placeholder="Enter your email"
+                required
+              />
+              <button type="submit" className="btn btn-warning fw-semibold px-4">
+                Submit
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
 
       <Footer />
     </>
