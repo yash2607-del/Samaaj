@@ -1,12 +1,11 @@
-
-/* Theme Colors */
+/* ========== THEME COLORS ========== */
 .bg-golden { background-color: #ffd700 !important; }
-.text-golden { color: #ffd700 !important; }
+.text-golden { color: #ffc107 !important; }
 
-/* Smooth Scrolling */
+/* ========== GLOBAL ========== */
 html { scroll-behavior: smooth; }
 
-/* Navbar */
+/* ========== NAVBAR ========== */
 .navbar-custom {
   background-color: transparent;
   padding: 1rem 4rem;
@@ -34,16 +33,16 @@ html { scroll-behavior: smooth; }
 
 .nav-link-custom:hover,
 .nav-link-custom.active {
-  color:    #ffd700 !important;
+  color: #ffd700 !important;
   border-bottom-color: #fb8b24;
 }
 
-/* Hero Section */
+/* ========== HERO SECTION ========== */
 .hero-section {
   position: relative;
-  height: 80vh;
+  height: 100vh;
   margin-top: 10vh;
-  width: 100%;
+  background-color: #fff;
   overflow: hidden;
 }
 
@@ -71,132 +70,27 @@ html { scroll-behavior: smooth; }
   to { opacity: 1; }
 }
 
-/* Parallax Features Section */
-.features-section {
-  background: url('../../assets/parallax-bg.jpg') center / cover fixed;
-  padding: 6rem 0;
-  background-color: #ffffff;
-}
-
-/* About Section */
-.about-section {
-  padding: 4rem 2rem;
-}
-.hero-section {
-  height: 100vh;
-  position: relative;
-  background-color: #ffffff;
-  overflow: hidden;
-}
-
-.hero-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
 .overlay {
   background-color: rgba(0, 0, 0, 0.5);
   padding: 30px;
   border-radius: 12px;
 }
 
-.text-golden {
-  color: #ffd700;
-}
-
+/* ========== FEATURES SECTION ========== */
 .features-section {
-  background-color: #111;
-}
-
-.about-section {
-  padding: 60px 20px;
-}
-
-.contact-section {
-  background-color: #1a1a1a;
-  padding: 80px 20px;
-  min-height: 60vh;
-}
-
-.contact-card {
-  background-color: #2c2c2c;
-  padding: 40px;
-  border-radius: 16px;
-  max-width: 500px;
-  width: 100%;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
-}
-
-.contact-card input {
-  width: 100%;
-  max-width: 350px;
-}
-
-.contact-card .btn {
-  width: 150px;
-}
-.contact-card input {
-  padding: 0.6rem;
-  border-radius: 8px;
-  border: none;
-  outline: none;
-  font-size: 1rem;
-}
-
-/* Contact Section */
-.contact-section {
-  background: linear-gradient(to right, #0f0f0f, #1c1c1c);
-  padding: 5rem 1rem;
-}
-
-.contact-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-  padding: 2rem;
-  border-radius: 1rem;
-  transition: transform 0.3s ease;
-}
-
-.contact-card:hover {
-  transform: translateY(-5px);
-}
-
-.contact-btn {
-  border-radius: 50px;
-  font-weight: 600;
-  color: #000;
-  background-color: #ffd700;
-  border: none;
-  box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.4), 0 8px 15px rgba(255, 193, 7, 0.3);
-  padding: 0.75rem 2rem;
-  transition: all 0.3s ease-in-out;
-  text-decoration: none;
-}
-
-.contact-btn:hover {
-  box-shadow: inset 0 0 7px rgba(255, 255, 255, 0.6), 0 12px 25px rgba(255, 193, 7, 0.6);
-  transform: scale(1.05);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .hero-text h1 { font-size: 2rem; }
-  .hero-text p { font-size: 1rem; }
-  .navbar-custom { padding: 0.8rem 1rem; }
-  .footer-shadow a { margin: 0.5rem 0.4rem; display: inline-block; }
+  background: url('../../assets/parallax-bg.jpg') center / cover fixed;
+  padding: 6rem 0;
+  color: white;
+  text-align: center;
 }
 
 .features-section h2 {
   position: relative;
   display: inline-block;
-  color: #fb8b24;
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 3rem;
-  text-align: center;
+  color: #fb8b24;
 }
 
 .features-section h2::after {
@@ -208,4 +102,87 @@ html { scroll-behavior: smooth; }
   left: 50%;
   transform: translateX(-50%);
   bottom: -10px;
+}
+
+/* ========== ABOUT SECTION ========== */
+.about-section {
+  background-color: #f8f9fa;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.about-section h2 {
+  font-weight: 700;
+  font-size: 2.5rem;
+  color: #ffc107;
+}
+
+.about-section p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #333;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ========== CONTACT SECTION ========== */
+.contact-section {
+  background-color: white;
+  padding: 5rem 1rem;
+}
+
+.contact-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  padding: 2rem;
+  border-radius: 1rem;
+  transition: transform 0.3s ease;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.contact-card:hover {
+  transform: translateY(-5px);
+}
+
+.contact-card input {
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  width: 100%;
+  max-width: 350px;
+}
+
+.contact-btn {
+  border-radius: 50px;
+  font-weight: 600;
+  color: #000;
+  background-color: #ffc107;
+  border: none;
+  box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.4),
+              0 8px 15px rgba(255, 193, 7, 0.3);
+  padding: 0.75rem 2rem;
+  transition: all 0.3s ease-in-out;
+  text-decoration: none;
+}
+
+.contact-btn:hover {
+  background-color: #e0a800;
+  box-shadow: inset 0 0 7px rgba(255, 255, 255, 0.6),
+              0 12px 25px rgba(255, 193, 7, 0.6);
+  transform: scale(1.05);
+}
+
+/* ========== RESPONSIVE STYLES ========== */
+@media (max-width: 768px) {
+  .hero-text h1 { font-size: 2rem; }
+  .hero-text p { font-size: 1rem; }
+  .navbar-custom { padding: 0.8rem 1rem; }
+  .footer-shadow a {
+    margin: 0.5rem 0.4rem;
+    display: inline-block;
+  }
 }

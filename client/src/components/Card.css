@@ -1,33 +1,36 @@
 .card-stack-wrapper {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: flex-start;
   gap: 2rem;
   padding: 2rem;
   flex-wrap: wrap;
+  position: relative;
 }
 
+/* Container holds cards in row-wise layout */
 .card-stack-container {
-  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  padding-left: 30px;
+  flex-wrap: wrap;
+  gap: 2rem;
   border-left: 3px solid #fb8b24;
+  padding-left: 30px;
+  flex: 1;
 }
 
 /* Each card */
 .card-stack {
-  background: #fff;
+  background: white;
   color: #222;
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
+  width: calc(50% - 1rem); /* Two cards per row */
   max-width: 500px;
-  min-height: 340px;
+  min-height: 350px;
+  text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
-  text-align: center;
 }
 
 .card-stack:hover {
@@ -45,83 +48,19 @@
 
 .card-title {
   font-size: 1.25rem;
-  margin-bottom: 0.5rem;
   font-weight: 600;
   color: #333;
+  margin: 1rem 0 0.5rem; /* space above and below */
 }
 
 .card-description {
   font-size: 0.95rem;
   color: #555;
+  margin: 0; /* no extra margin */
+  line-height: 1.5;
 }
 
 /* Hovered side panel */
-.hovered-description {
-  width: 400px;
-  max-width: 100%;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  position: sticky;
-  top: 100px;
-  border-left: 4px solid #fb8b24;
-  animation: slideIn 0.3s ease forwards;
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-@keyframes slideIn {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.card-stack-wrapper {
-  display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
-  gap: 2rem;
-  position: relative;
-}
-
-/* Container for all cards */
-.card-stack-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  padding-left: 40px;
-  border-left: 3px solid #fb8b24;
-}
-
-/* Individual card */
-.card-stack {
-  background: white;
-  color: #222;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-  width: 100%;
-  max-width: 500px;
-  min-height: 350px;
-  text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
-}
-
-/* Sticky version of hovered card */
-.sticky-hovered-card {
-  position: sticky;
-  top: 150px;
-  z-index: 100;
-  border: 2px solid #fb8b24;
-  background-color: #fffbe6;
-  box-shadow: 0 8px 24px rgba(251, 139, 36, 0.15);
-}
-
-/* Floating description panel */
 .hovered-description {
   width: 400px;
   background: #fff;
@@ -138,13 +77,6 @@
   margin-top: 0.5rem;
 }
 
-@keyframes slideIn {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .hovered-description h3 {
   margin: 0 0 0.5rem;
   font-size: 1.25rem;
@@ -155,4 +87,11 @@
   margin: 0;
   color: #444;
   line-height: 1.5;
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

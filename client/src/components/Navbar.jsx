@@ -37,7 +37,7 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-custom fixed-top">
+    <nav className="navbar navbar-expand-lg navbar-custom bg-black/50 backdrop-blur-md p-4 rounded fixed-top">
       <div className="container">
         <a className="navbar-brand text-golden fw-bold display-4" href="#home">Samaaj</a>
         <button
