@@ -16,17 +16,17 @@ const Card = ({ cards }) => {
         if (card) {
           gsap.fromTo(
             card,
-            { y: 200, opacity: 0, scale: 0.95 },
+            { y: 100, opacity: 0, scale: 0.95 },
             {
               y: 0,
               opacity: 1,
               scale: 1,
-              duration: 1,
+              duration: 0.8,
               ease: 'power3.out',
               scrollTrigger: {
                 trigger: card,
-                start: 'top 75%',
-                toggleActions: 'play none none none',
+                start: 'top 80%',
+                toggleActions: 'play none none reverse',
               },
             }
           );
@@ -56,12 +56,11 @@ const Card = ({ cards }) => {
         ))}
       </div>
 
-      {/* Right Side Description Panel */}
       {hoveredCard && (
-        <div className="hovered-description">
+        <aside className="hovered-description">
           <h3>{hoveredCard.title}</h3>
           <p>{hoveredCard.description}</p>
-        </div>
+        </aside>
       )}
     </div>
   );
