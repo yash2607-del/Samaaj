@@ -1,0 +1,85 @@
+.wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 90vh;
+    padding-top: 100px; 
+  }
+
+  .google-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    color: rgb(37, 29, 29);
+    border: 2px solid rgb(0, 187, 255);
+    padding: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .google-btn:hover {
+    background-color: #bed4f2;
+  }
+  
+  .google-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+  }
+  
+  .google-text {
+    font-size: 16px;
+  }
+  
+  .google-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .linkedin-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    color: rgb(37, 29, 29);
+    border: 2px solid rgb(0, 119, 181);
+    padding: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .linkedin-btn:hover {
+    background-color: #cce7f2;
+  }
+  
+  .linkedin-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+  }
+  
+  .linkedin-text {
+    font-size: 16px;
+  }
+  
+  .linkedin-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .sign-in{
+    text-decoration: none;
+    color: rgb(61, 110, 209);
+    font-weight: bold;
+    
+  }
+
+
+  
