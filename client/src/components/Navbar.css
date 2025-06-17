@@ -1,0 +1,75 @@
+/* === Golden Theme === */
+.text-golden {
+  color: #fb8b24 !important;
+}
+.bg-golden {
+  background-color: #fb8b24 !important;
+}
+
+/* === Navbar Element === */
+.navbar-custom {
+  
+  padding: 1rem 2rem;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  transition: background-color 0.3s ease, padding 0.3s ease;
+}
+
+/* Navbar when scrolled */
+.navbar-scrolled {
+  background-color: #ffffffb0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Nav Brand */
+.navbar-brand {
+  font-size: 1.8rem;
+}
+
+/* Nav Links */
+.nav-link-custom {
+  font-weight: 500;
+  margin-left: 20px;
+  color: #101010 !important;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.nav-link-custom:hover,
+.nav-link-custom.active {
+  color: #fb8b24 !important;
+  border-bottom-color: #fb8b24;
+}
+
+/* Navbar Toggle Icon (mobile) */
+.navbar-toggler {
+  border: none;
+}
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' fill='%23ffffff' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='white' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 768px) {
+  .navbar-custom {
+    padding: 0.8rem 1rem;
+  }
+
+  .nav-link-custom {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+
+  .hero-text h1 {
+    font-size: 2rem;
+  }
+
+  .hero-text p {
+    font-size: 1rem;
+  }
+
+  .footer-shadow {
+    text-align: center;
+  }
+}

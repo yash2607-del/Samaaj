@@ -1,0 +1,70 @@
+.slider {
+    position: relative;
+    width: 100%;
+    height: 100vh; /* full viewport height */
+    max-width: none; /* remove max-width to allow full width */
+    overflow: hidden;
+    margin: 0 auto;
+    border-radius: 0; /* remove rounded corners for fullscreen look */
+    box-shadow: none; /* remove shadow for cleaner fullscreen */
+  }
+  
+  .slide-image {
+    width: 100%;
+    height: 100vh; /* full viewport height */
+    object-fit: cover;
+    transition: opacity 0.5s ease-in-out;
+    border-radius: 0; /* no rounding */
+  }
+  
+  .arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 0 15px;
+    z-index: 10;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+  }
+  
+  .arrow:hover {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+  
+  .left {
+    left: 20px;
+  }
+  
+  .right {
+    right: 20px;
+  }
+  
+  .dots {
+    position: absolute;
+    bottom: 30px;
+    width: 100%;
+    text-align: center;
+    z-index: 10;
+  }
+  
+  .dot {
+    height: 14px;
+    width: 14px;
+    margin: 0 8px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    display: inline-block;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .dot.active,
+  .dot:hover {
+    background-color: white;
+  }
+  
