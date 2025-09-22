@@ -4,6 +4,7 @@ import Landing from "./pages/landing/Landing";
 import Signup from "./pages/auth/signup/Signup";
 import Login from "./pages/auth/login/Login";
 import Create from "./pages/UserIssue/Create";
+import Dashboard from "./pages/dashboard/Dashboard";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route path="/complaint" element={<Create />} />
+      <Route path="/dashboard" element={<Dashboard />} />
     </Routes>
   );
 }
