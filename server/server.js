@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 mongoose.connect(
-  "mongodb+srv://23103353:7IsNRgudMU2RHYI3@samaajcluster.povs5dk.mongodb.net/samaaj",
+  "mongodb+srv://mini2602:mini0209@sjcluster.oiwbq7f.mongodb.net/",
   { useNewUrlParser: true, useUnifiedTopology: true }
 ).then(() => console.log("MongoDB connected"))
  .catch(err => console.error("MongoDB connection error:", err));
