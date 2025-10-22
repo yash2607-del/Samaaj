@@ -1,9 +1,18 @@
+// ...existing code...
 import React, { useState } from "react";
+import axios from "axios";
 
 const Create = () => {
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [photoError, setPhotoError] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Auto detect location and get address
   const handleAutoDetect = () => {
@@ -38,44 +47,84 @@ const Create = () => {
 
   // Handle photo selection & basic verification
   const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files && e.target.files[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
         setPhotoError("Only image files are allowed.");
         setPhoto(null);
+        setPhotoPreview(null);
       } else if (file.size > 5 * 1024 * 1024) {
         setPhotoError("File size must be less than 5MB.");
         setPhoto(null);
+        setPhotoPreview(null);
       } else {
         setPhoto(file);
         setPhotoError("");
+        setPhotoPreview(URL.createObjectURL(file));
       }
+    } else {
+      setPhoto(null);
+      setPhotoPreview(null);
+      setPhotoError("");
     }
   };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
+  // Handle form submission -> send multipart/form-data to server
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    if (!title.trim() || !category || !description.trim() || !location.trim()) {
+      setErrorMsg("Please fill all required fields.");
+      return;
+    }
 
     if (!photo) {
       setPhotoError("Photo is required before submitting.");
       return;
     }
 
-    // Everything is valid → proceed
-    alert("Complaint submitted successfully ✅");
+    const formData = new FormData();
+    formData.append("title", title.trim());
+    formData.append("category", category);
+    formData.append("description", description.trim());
+    formData.append("location", location.trim());
+    formData.append("photo", photo);
+
+    try {
+      setSubmitting(true);
+      const res = await axios.post("http://localhost:3000/api/complaints", formData /* , axios will set proper headers */);
+      setSuccessMsg("Complaint submitted successfully.");
+      // reset form
+      setTitle("");
+      setCategory("");
+      setDescription("");
+      setLocation("");
+      setPhoto(null);
+      setPhotoPreview(null);
+      setPhotoError("");
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.error || "Submission failed. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="container py-5" style={{ backgroundColor: "#ffffff" }}>
       <div className="text-center mb-4">
         <h2 style={{ color: "#FFD700", fontWeight: "bold" }}>
-          📝 Raise Your Complaint with Samaaj
+          Raise Your Complaint with Samaaj
         </h2>
         <p className="text-muted">
           Help us build a better community by reporting issues you notice.
         </p>
       </div>
+
+      {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
+      {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
       <form
         className="p-4 rounded shadow"
@@ -89,14 +138,24 @@ const Create = () => {
             className="form-control"
             id="problemTitle"
             placeholder="Problem Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             required
+            disabled={submitting}
           />
           <label htmlFor="problemTitle">Problem Title</label>
         </div>
 
         {/* Problem Category */}
         <div className="form-floating mb-3">
-          <select className="form-select" id="problemCategory" defaultValue="" required>
+          <select
+            className="form-select"
+            id="problemCategory"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            required
+            disabled={submitting}
+          >
             <option value="" disabled>
               Select Category
             </option>
@@ -106,6 +165,7 @@ const Create = () => {
             <option>Road</option>
             <option>Water</option>
             <option>Public Safety</option>
+            <option>Other</option>
           </select>
           <label htmlFor="problemCategory">Problem Category</label>
         </div>
@@ -117,7 +177,10 @@ const Create = () => {
             placeholder="Describe your problem"
             id="problemDescription"
             style={{ height: "120px" }}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             required
+            disabled={submitting}
           ></textarea>
           <label htmlFor="problemDescription">Problem Description</label>
         </div>
@@ -132,6 +195,7 @@ const Create = () => {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             required
+            disabled={submitting}
           />
           <label htmlFor="location">Location (Address)</label>
         </div>
@@ -140,9 +204,10 @@ const Create = () => {
         <div className="mb-3 text-center">
           <button
             type="button"
-            className="btn w-100"
+            className="btn w-30 fw-bold"
             style={{ backgroundColor: "yellow", color: "black" }}
             onClick={handleAutoDetect}
+            disabled={submitting}
           >
             📍 Auto Detect Address
           </button>
@@ -159,10 +224,22 @@ const Create = () => {
             id="photoUpload"
             accept="image/*"
             onChange={handlePhotoChange}
+            disabled={submitting}
             required
           />
           {photoError && <p className="text-danger mt-2">{photoError}</p>}
         </div>
+
+        {photoPreview && (
+          <div className="mb-3 text-center">
+            <img
+              src={photoPreview}
+              alt="preview"
+              className="img-fluid rounded"
+              style={{ maxHeight: 240 }}
+            />
+          </div>
+        )}
 
         {/* Submit Button (Centered) */}
         <div className="text-center">
@@ -170,8 +247,9 @@ const Create = () => {
             type="submit"
             className="btn"
             style={{ backgroundColor: "#FFD700", fontWeight: "bold", width: "200px" }}
+            disabled={submitting}
           >
-            Submit
+            {submitting ? "Submitting..." : "Submit"}
           </button>
         </div>
       </form>
@@ -180,3 +258,4 @@ const Create = () => {
 };
 
 export default Create;
+// ...existing code...
