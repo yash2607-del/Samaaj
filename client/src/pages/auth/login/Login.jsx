@@ -13,8 +13,10 @@ function Login() {
     setError("");
     axios.post("http://localhost:3000/login", { email, password })
       .then(res => {
-      
-        localStorage.setItem('userType', res.data.user.role);
+        // store token and user info for authenticated requests
+        if (res.data.token) localStorage.setItem('token', res.data.token);
+        if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
+        localStorage.setItem('userType', res.data.user?.role || '');
         navigate("/home");
       })
       .catch(err => {

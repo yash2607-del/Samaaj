@@ -7,12 +7,28 @@ const Create = () => {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [department, setDepartment] = useState("");
+  const [departments, setDepartments] = useState([]);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoError, setPhotoError] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Fetch departments when component mounts
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/complaints/departments");
+        setDepartments(response.data);
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+        setErrorMsg("Failed to load departments. Please try again.");
+      }
+    };
+    fetchDepartments();
+  }, []);
 
   // Auto detect location and get address
   const handleAutoDetect = () => {
@@ -85,11 +101,17 @@ const Create = () => {
       return;
     }
 
+    if (!department) {
+      setErrorMsg("Please select a department.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("title", title.trim());
     formData.append("category", category);
     formData.append("description", description.trim());
     formData.append("location", location.trim());
+    formData.append("department", department);
     formData.append("photo", photo);
 
     try {
@@ -168,6 +190,26 @@ const Create = () => {
             <option>Other</option>
           </select>
           <label htmlFor="problemCategory">Problem Category</label>
+        </div>
+
+        {/* Department Selection */}
+        <div className="form-floating mb-3">
+          <select
+            className="form-select"
+            id="department"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            required
+            disabled={submitting}
+          >
+            <option value="">Select Department</option>
+            {departments.map((dept) => (
+              <option key={dept._id} value={dept._id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="department">Department</label>
         </div>
 
         {/* Problem Description */}
