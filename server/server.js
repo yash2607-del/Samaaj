@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 
 // models
 import { User, Citizen, Moderator } from './models/User.js';
+import Department from './models/Department.js';
 
 // middleware
 import auth from './middleware/auth.js';
@@ -18,6 +19,7 @@ import auth from './middleware/auth.js';
 // routers
 import complaintsRouter from './routes/complaints.js';
 import trackRouter from './routes/track.js';
+import moderatorRouter from './routes/moderator.js';
 
 const app = express();
 app.use(cors());
@@ -56,7 +58,9 @@ app.post('/signup', async (req, res) => {
       await Moderator.create({ userId: user._id, name, email, password: hashedPassword, role, department, assignedArea });
     }
 
-    return res.status(201).json({ message: 'User created successfully' });
+    // Optionally return a token so the client can be logged in immediately
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    return res.status(201).json({ message: 'User created successfully', token, user: { id: user._id, role: user.role, name: user.name, email: user.email } });
   } catch (err) {
     console.error('Signup error:', err);
     return res.status(400).json({ error: err.message });
@@ -76,9 +80,10 @@ app.post('/login', async (req, res) => {
     if (!isMatch) return res.status(401).json({ error: 'Invalid email or password' });
 
     // generate JWT
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    return res.status(200).json({ message: 'Login successful', token });
+    // return token and user info so client can store and use it
+    return res.status(200).json({ message: 'Login successful', token, user: { id: user._id, role: user.role, name: user.name, email: user.email } });
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ error: err.message });
@@ -104,8 +109,19 @@ app.get('/profile', auth, async (req, res) => {
   }
 });
 
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+    
+    // Mount routes after successful DB connection
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/track', trackRouter);
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.use('/api/moderators', moderatorRouter);    // Start server after DB connection
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });

@@ -1,69 +1,187 @@
-import express from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import Complaint from '../models/Complaint.js';
+// routes/complaintRoutes.js
+import express from "express";
+import mongoose from 'mongoose';
+import Complaint from "../models/complaint.js";
+import Moderator from "../models/Moderator.js";
+import Department from "../models/Department.js";
 
 const router = express.Router();
 
-// ensure uploads dir exists
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-// multer storage -> uploads folder
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
-    cb(null, name);
+// Fetch complaints for the logged-in moderator
+// Get all departments
+router.get("/departments", async (req, res) => {
+  try {
+    const departments = await Department.find().sort({ name: 1 });
+    res.json(departments);
+  } catch (error) {
+    console.error("Error fetching departments:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
-});
-
-// Create complaint (multipart/form-data with field 'photo')
-router.post('/', upload.single('photo'), async (req, res) => {
+router.get("/moderator-view", async (req, res) => {
   try {
-    const { title, category, description = '', location } = req.body;
-    if (!title || !category || !location) return res.status(400).json({ error: 'title, category and location are required' });
+    const { email } = req.query; // moderator's email
 
-    const photoPath = req.file ? `/uploads/${req.file.filename}` : '';
-    const complaint = await Complaint.create({ title, category, description, location, photo: photoPath });
-    return res.status(201).json({ message: 'Complaint created', complaint });
-  } catch (err) {
-    console.error('Create complaint error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    if (!email) {
+      return res.status(400).json({ message: "Moderator email is required" });
+    }
+
+    // find moderator details and populate department
+    const mod = await Moderator.findOne({ email }).populate('department');
+    if (!mod) {
+      return res.status(404).json({ message: "Moderator not found" });
+    }
+
+    // get all complaints related to the moderator's department
+    const complaints = await Complaint.find({
+      department: mod.department._id
+    })
+    .populate('department')
+    .sort({ createdAt: -1 });
+
+    res.json(complaints);
+  } catch (error) {
+    console.error("Error fetching moderator complaints:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// List complaints (optional query: category, status)
-router.get('/', async (req, res) => {
+// Update complaint status (for moderators)
+router.patch("/update-status/:complaintId", async (req, res) => {
   try {
-    const { category, status } = req.query;
-    const filter = {};
-    if (category) filter.category = category;
-    if (status) filter.status = status;
-    const complaints = await Complaint.find(filter).sort({ createdAt: -1 }).lean();
-    return res.json(complaints);
-  } catch (err) {
-    console.error('List complaints error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    const { complaintId } = req.params;
+    const { status, moderatorEmail } = req.body;
+
+    console.log('Updating complaint:', { complaintId, status, moderatorEmail });
+
+    // Validate status
+    const validStatuses = ["Pending", "In Progress", "Resolved", "Rejected"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    // Find moderator
+    const moderator = await Moderator.findOne({ email: moderatorEmail });
+    if (!moderator) {
+      return res.status(404).json({ message: "Moderator not found" });
+    }
+
+    // Helper to safely escape regex
+    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // Resolve moderator's department robustly (ObjectId, exact name, case-insensitive, partial)
+    let department = null;
+    try {
+      const rawField = moderator.department;
+      if (!rawField) {
+        department = null;
+      } else if (typeof rawField === 'object' && rawField._id) {
+        // populated object
+        department = await Department.findById(rawField._id) || rawField;
+      } else {
+        const deptField = String(rawField).trim();
+        // If it's an ObjectId string
+        if (mongoose.Types.ObjectId.isValid(deptField)) {
+          department = await Department.findById(deptField);
+        }
+
+        // If still not found and deptField is a non-empty string, try matching by name
+        if (!department && deptField) {
+          // try exact
+          department = await Department.findOne({ name: deptField });
+          // case-insensitive exact
+          if (!department) department = await Department.findOne({ name: new RegExp('^' + escapeRegExp(deptField) + '$', 'i') });
+          // word-boundary match (so 'Water' matches 'Water Supply')
+          if (!department) department = await Department.findOne({ name: new RegExp('\\b' + escapeRegExp(deptField) + '\\b', 'i') });
+          // fallback: substring match
+          if (!department) department = await Department.findOne({ name: new RegExp(escapeRegExp(deptField), 'i') });
+        }
+      }
+    } catch (err) {
+      console.error('Error resolving moderator department:', err);
+    }
+
+    if (!department) {
+      console.log('Department not found for moderator:', { moderatorDeptField: moderator.department });
+      return res.status(400).json({ message: "Moderator's department not found" });
+    }
+
+    console.log('Found moderator and department:', {
+      moderatorId: moderator._id,
+      email: moderator.email,
+      department: department.name,
+      departmentId: department._id
+    });
+
+    // Find complaint
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // If complaint doesn't have a department, assign it to moderator's department
+    if (!complaint.department) {
+      complaint.department = department._id;
+      await complaint.save();
+    }
+
+    // For comparison, ensure we're using the department's _id
+    const complaintDeptId = complaint.department.toString();
+    const moderatorDeptId = department._id.toString();
+
+    console.log('Comparing departments:', {
+      complaintDept: complaintDeptId,
+      moderatorDept: moderatorDeptId
+    });
+
+    // Verify moderator has permission to update this complaint
+    if (complaint.department.toString() !== department._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to update this complaint" });
+    }
+
+    // Update complaint status
+    complaint.status = status;
+    await complaint.save();
+
+    res.json({ message: "Status updated successfully", complaint });
+  } catch (error) {
+    console.error("Error updating complaint status:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// Get single complaint
-router.get('/:id', async (req, res) => {
+// Create new complaint
+router.post("/", async (req, res) => {
   try {
-    const c = await Complaint.findById(req.params.id).lean();
-    if (!c) return res.status(404).json({ error: 'Complaint not found' });
-    return res.json(c);
-  } catch (err) {
-    console.error('Get complaint error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    const { title, category, description, location, department } = req.body;
+    
+    // Validate required fields
+    if (!title || !category || !description || !location || !department) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Verify department exists
+    const departmentExists = await Department.findById(department);
+    if (!departmentExists) {
+      return res.status(400).json({ message: "Invalid department" });
+    }
+
+    // Create complaint
+    const complaint = new Complaint({
+      title,
+      category,
+      description,
+      location,
+      department,
+      photo: req.file ? req.file.path : ""
+    });
+
+    await complaint.save();
+    res.status(201).json(complaint);
+  } catch (error) {
+    console.error("Error creating complaint:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
