@@ -17,7 +17,8 @@ const complaintSchema = new Schema(
       enum: ["Pending","In Progress","Resolved","Rejected"],
       default: "Pending"
     },
-    userId: { type: Schema.Types.ObjectId, ref: "User", default: null }
+    userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    department: { type: Schema.Types.ObjectId, ref: "Department", required: true }
   },
   { timestamps: true, versionKey: false }
 );

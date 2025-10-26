@@ -10,5 +10,9 @@
     "multer": "^2.0.2",
     "nodemon": "^3.1.10",
     "react-dom": "^19.1.0"
+  },
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed.js"
   }
 }
