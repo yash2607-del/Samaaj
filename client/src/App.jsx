@@ -8,6 +8,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import Usertrack from "./pages/Usertrackissue/Usertrack";
 import UserProfile from "./pages/UserProfile/UserProfile";
 import Profile from "./Profile/Profile";
+import ModeratorDashboard from "./pages/ModeratorDashboard/ModeratorDashboard"
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
       <Route path="/track-issue" element={<Usertrack />}/>
       <Route path="/user-profile" element={<UserProfile />}/>
       <Route path="/profile" element={<Profile/>}/>
+      <Route path="/moderator-dashboard" element={<ModeratorDashboard />} />
 
       
 
