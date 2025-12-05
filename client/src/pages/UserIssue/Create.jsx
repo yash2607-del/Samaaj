@@ -1,6 +1,6 @@
-// ...existing code...
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, FiSend } from 'react-icons/fi';
 
 const Create = () => {
   const [title, setTitle] = useState("");
@@ -135,26 +135,42 @@ const Create = () => {
   };
 
   return (
-    <div className="container py-5" style={{ backgroundColor: "#ffffff" }}>
-      <div className="text-center mb-4">
-        <h2 style={{ color: "#FFD700", fontWeight: "bold" }}>
-          Raise Your Complaint with Samaaj
+    <div className="container py-5" style={{ backgroundColor: "#FFFEF7" }}>
+      <div className="text-center mb-5">
+        <div className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+             style={{ width: "80px", height: "80px", backgroundColor: "#FFC107" }}>
+          <FiAlertCircle style={{ fontSize: "2.5rem", color: "#1a1a1a" }} />
+        </div>
+        <h2 className="fw-bold mb-2" style={{ color: "#1a1a1a" }}>
+          Submit Civic Complaint
         </h2>
-        <p className="text-muted">
-          Help us build a better community by reporting issues you notice.
+        <p style={{ color: "#616161", fontSize: "1.05rem" }}>
+          Your voice drives positive change. Report civic issues and help build a thriving community.
         </p>
       </div>
 
-      {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
-      {successMsg && <div className="alert alert-success">{successMsg}</div>}
+      {errorMsg && (
+        <div className="alert d-flex align-items-center" style={{ backgroundColor: "#FFEBEE", color: "#C62828", border: "1px solid #EF5350" }}>
+          <FiAlertCircle className="me-2" style={{ fontSize: "1.2rem" }} />
+          {errorMsg}
+        </div>
+      )}
+      {successMsg && (
+        <div className="alert d-flex align-items-center" style={{ backgroundColor: "#E8F5E9", color: "#2E7D32", border: "1px solid #4CAF50" }}>
+          <FiCheckCircle className="me-2" style={{ fontSize: "1.2rem" }} />
+          {successMsg}
+        </div>
+      )}
 
       <form
-        className="p-4 rounded shadow"
-        style={{ backgroundColor: "white" }}
+        className="p-5 rounded-3 shadow-sm"
+        style={{ backgroundColor: "white", border: "3px solid #FFC107" }}
         onSubmit={handleSubmit}
       >
+        <h5 className="fw-bold mb-4 pb-3 border-bottom" style={{ color: "#1a1a1a" }}>Complaint Details</h5>
+        
         {/* Problem Title */}
-        <div className="form-floating mb-3">
+        <div className="form-floating mb-4">
           <input
             type="text"
             className="form-control"
@@ -243,22 +259,24 @@ const Create = () => {
         </div>
 
         {/* Auto Detect Button */}
-        <div className="mb-3 text-center">
+        <div className="mb-4 text-center">
           <button
             type="button"
-            className="btn w-30 fw-bold"
-            style={{ backgroundColor: "yellow", color: "black" }}
+            className="btn fw-semibold px-4 py-2"
+            style={{ backgroundColor: "#FFC107", color: "#1a1a1a", border: "none", borderRadius: "8px" }}
             onClick={handleAutoDetect}
             disabled={submitting}
           >
-            📍 Auto Detect Address
+            <FiMapPin className="me-2" style={{ fontSize: "1.1rem" }} />
+            Auto-Detect Current Location
           </button>
         </div>
 
         {/* Photo Upload (Required) */}
-        <div className="mb-3">
-          <label htmlFor="photoUpload" className="form-label fw-bold">
-            Upload Photo <span style={{ color: "red" }}>*</span>
+        <div className="mb-4">
+          <label htmlFor="photoUpload" className="form-label fw-semibold d-flex align-items-center gap-2" style={{ color: "#1a1a1a" }}>
+            <FiUpload style={{ color: "#FFC107" }} />
+            Upload Supporting Photo <span style={{ color: "#D32F2F" }}>*</span>
           </label>
           <input
             className="form-control"
@@ -268,31 +286,57 @@ const Create = () => {
             onChange={handlePhotoChange}
             disabled={submitting}
             required
+            style={{ borderColor: photoError ? "#D32F2F" : "#dee2e6" }}
           />
-          {photoError && <p className="text-danger mt-2">{photoError}</p>}
+          {photoError && (
+            <p className="mt-2 d-flex align-items-center gap-1" style={{ color: "#D32F2F", fontSize: "0.875rem" }}>
+              <FiAlertCircle />{photoError}
+            </p>
+          )}
+          <small className="text-muted">Maximum file size: 5MB. Accepted formats: JPG, PNG, GIF</small>
         </div>
 
         {photoPreview && (
-          <div className="mb-3 text-center">
-            <img
-              src={photoPreview}
-              alt="preview"
-              className="img-fluid rounded"
-              style={{ maxHeight: 240 }}
-            />
+          <div className="mb-4 text-center">
+            <div className="border rounded-3 p-3" style={{ backgroundColor: "#FFFEF7", borderColor: "#FFC107" }}>
+              <p className="small fw-semibold mb-2" style={{ color: "#616161" }}>Image Preview:</p>
+              <img
+                src={photoPreview}
+                alt="preview"
+                className="img-fluid rounded"
+                style={{ maxHeight: 280, border: "2px solid #FFC107" }}
+              />
+            </div>
           </div>
         )}
 
         {/* Submit Button (Centered) */}
-        <div className="text-center">
+        <div className="text-center mt-5 pt-4 border-top">
           <button
             type="submit"
-            className="btn"
-            style={{ backgroundColor: "#FFD700", fontWeight: "bold", width: "200px" }}
+            className="btn btn-lg fw-bold px-5 py-3"
+            style={{ 
+              backgroundColor: "#FFC107", 
+              color: "#1a1a1a", 
+              border: "none",
+              borderRadius: "10px",
+              minWidth: "250px"
+            }}
             disabled={submitting}
           >
-            {submitting ? "Submitting..." : "Submit"}
+            {submitting ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Processing Submission...
+              </>
+            ) : (
+              <>
+                <FiSend className="me-2" style={{ fontSize: "1.2rem" }} />
+                Submit Complaint
+              </>
+            )}
           </button>
+          <p className="text-muted mt-3 small">Your complaint will be reviewed within 24-48 hours</p>
         </div>
       </form>
     </div>
@@ -300,4 +344,3 @@ const Create = () => {
 };
 
 export default Create;
-// ...existing code...

@@ -17,7 +17,7 @@ function Login() {
         if (res.data.token) localStorage.setItem('token', res.data.token);
         if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
         localStorage.setItem('userType', res.data.user?.role || '');
-        navigate("/home");
+        navigate("/dashboard");
       })
       .catch(err => {
         setError(err.response?.data?.error || "Login failed");
