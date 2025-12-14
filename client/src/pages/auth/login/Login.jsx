@@ -15,7 +15,11 @@ function Login() {
       .then(res => {
         // store token and user info for authenticated requests
         if (res.data.token) localStorage.setItem('token', res.data.token);
-        if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
+        if (res.data.user) {
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+          if (res.data.user.name) localStorage.setItem('userName', res.data.user.name);
+          if (res.data.user.id) localStorage.setItem('userId', res.data.user.id);
+        }
         localStorage.setItem('userType', res.data.user?.role || '');
         navigate("/dashboard");
       })

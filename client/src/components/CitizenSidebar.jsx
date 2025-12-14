@@ -17,6 +17,9 @@ function CitizenSidebar() {
   const handleLogout = () => {
     localStorage.removeItem("userType");
     localStorage.removeItem("userId");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("token");
     navigate("/login");
   };
 

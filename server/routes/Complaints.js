@@ -1,11 +1,32 @@
 // routes/complaintRoutes.js
 import express from "express";
 import mongoose from 'mongoose';
-import Complaint from "../models/complaint.js";
-import Moderator from "../models/Moderator.js";
-import Department from "../models/Department.js";
+import path from 'path';
+import multer from 'multer';
+import Complaint from "../Models/complaint.js";
+import Moderator from "../Models/Moderator.js";
+import Department from "../Models/Department.js";
 
 const router = express.Router();
+
+// Multer setup to handle `photo` uploads
+const uploadsDir = path.join(process.cwd(), 'uploads');
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '';
+    cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only image files allowed'), false);
+    cb(null, true);
+  }
+});
 
 // Fetch complaints for the logged-in moderator
 // Get all departments
@@ -16,6 +37,27 @@ router.get("/departments", async (req, res) => {
   } catch (error) {
     console.error("Error fetching departments:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Fetch complaints for citizens dashboard (optionally filter by user, status, department)
+router.get("/", async (req, res) => {
+  try {
+    const { userId, status, department } = req.query;
+    const filter = {};
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) filter.userId = userId;
+    if (status) filter.status = status;
+    if (department && mongoose.Types.ObjectId.isValid(department)) filter.department = department;
+
+    const complaints = await Complaint.find(filter)
+      .populate('department', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ data: complaints });
+  } catch (error) {
+    console.error('Error fetching complaints:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -151,20 +193,33 @@ router.patch("/update-status/:complaintId", async (req, res) => {
   }
 });
 
-// Create new complaint
-router.post("/", async (req, res) => {
+// Create new complaint (accept multipart/form-data with `photo` field)
+router.post("/", upload.single('photo'), async (req, res) => {
   try {
-    const { title, category, description, location, department } = req.body;
-    
+    // helpful debug info when req.body is unexpectedly undefined
+    console.log('Create complaint - Content-Type:', req.headers && req.headers['content-type']);
+    if (!req.body) console.log('Create complaint - req.body is undefined or empty');
+
+    if (!req.is('multipart/form-data')) {
+      return res.status(400).json({ error: "Request must be multipart/form-data" });
+    }
+
+    const body = req.body || {};
+    const { title, category, description, location, addressLine, landmark, city, district, state, pincode, department, userId } = body;
+
     // Validate required fields
     if (!title || !category || !description || !location || !department) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (userId && !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "Invalid user" });
     }
 
     // Verify department exists
     const departmentExists = await Department.findById(department);
     if (!departmentExists) {
-      return res.status(400).json({ message: "Invalid department" });
+      return res.status(400).json({ error: "Invalid department" });
     }
 
     // Create complaint
@@ -173,15 +228,22 @@ router.post("/", async (req, res) => {
       category,
       description,
       location,
+      addressLine,
+      landmark,
+      city,
+      district,
+      state,
+      pincode,
       department,
-      photo: req.file ? req.file.path : ""
+      userId: userId || null,
+      photo: req.file ? path.relative(process.cwd(), req.file.path).replace(/\\\\/g,'/') : ""
     });
 
     await complaint.save();
     res.status(201).json(complaint);
   } catch (error) {
     console.error("Error creating complaint:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 

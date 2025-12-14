@@ -1,6 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import Complaint from '../models/Complaint.js';
+import Complaint from '../Models/complaint.js';
 
 const router = express.Router();
 

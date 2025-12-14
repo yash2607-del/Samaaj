@@ -11,7 +11,6 @@ import bcrypt from 'bcryptjs';
 
 // models
 import { User, Citizen, Moderator } from './models/User.js';
-import Department from './models/Department.js';
 
 // middleware
 import auth from './middleware/auth.js';
@@ -24,6 +23,7 @@ import moderatorRouter from './routes/moderator.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ensure uploads dir exists and serve it
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -109,19 +109,10 @@ app.get('/profile', auth, async (req, res) => {
   }
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    
-    // Mount routes after successful DB connection
+// Mount routes and start server (after initial connection above)
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/track', trackRouter);
-app.use('/api/moderators', moderatorRouter);    // Start server after DB connection
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-  });
+app.use('/api/moderators', moderatorRouter);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

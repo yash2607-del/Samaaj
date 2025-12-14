@@ -1,44 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { filterByCategory, filterByStatus, searchComplaints } from "../../utils/filters";
 import CitizenSidebar from "../../components/CitizenSidebar";
+import API from "../../api.js";
 import { 
   FiUser, FiClipboard, FiCheckCircle, FiClock, 
   FiSearch, FiFilter, FiList, FiAlertCircle, 
   FiCalendar, FiEye, FiPlusCircle, FiSettings,
-  FiZap, FiTag, FiInbox 
+  FiZap, FiTag, FiInbox, FiMapPin
 } from 'react-icons/fi';
-
-// Dummy data for complaints
-const dummyComplaints = [
-  {
-    id: 1,
-    title: "Street Light Not Working",
-    description: "The street light near my house is not working.",
-    category: "Electricity",
-    status: "Open",
-    date: "2025-09-20",
-    photo: "",
-  },
-  {
-    id: 2,
-    title: "Garbage Collection Delay",
-    description: "Garbage has not been collected for 3 days.",
-    category: "Cleanliness",
-    status: "Resolved",
-    date: "2025-09-18",
-    photo: "",
-  },
-  {
-    id: 3,
-    title: "Water Leakage",
-    description: "Water is leaking from the main pipe.",
-    category: "Water",
-    status: "In Progress",
-    date: "2025-09-19",
-    photo: "",
-  },
-];
 
 const categories = [
   "All",
@@ -50,17 +20,74 @@ const categories = [
   "Public Safety",
 ];
 
-const statuses = ["All", "Open", "In Progress", "Resolved"];
+const statuses = ["All", "Pending", "In Progress", "Resolved", "Rejected"];
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [complaints] = useState(dummyComplaints);
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [status, setStatus] = useState("All");
-  let filteredComplaints = filterByCategory(complaints, category);
-  filteredComplaints = filterByStatus(filteredComplaints, status);
-  filteredComplaints = searchComplaints(filteredComplaints, search);
+
+  const { totalComplaints, resolvedCount, inProgressCount } = useMemo(() => {
+    const total = complaints.length;
+    const resolved = complaints.filter((c) => c.status === "Resolved").length;
+    const inProgress = complaints.filter((c) => ["Pending", "In Progress"].includes(c.status)).length;
+    return { totalComplaints: total, resolvedCount: resolved, inProgressCount: inProgress };
+  }, [complaints]);
+
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const storedUser = localStorage.getItem("user");
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+        const userId = parsedUser?.id || localStorage.getItem("userId") || "";
+        const params = userId ? { userId } : {};
+        const response = await API.get("/api/complaints", { params });
+        setComplaints(response.data?.data || []);
+      } catch (err) {
+        console.error("Failed fetching complaints:", err);
+        setError(err.response?.data?.error || "Unable to load complaints. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchComplaints();
+  }, []);
+
+  const filteredComplaints = useMemo(() => {
+    let list = filterByCategory(complaints, category);
+    list = filterByStatus(list, status);
+    list = searchComplaints(list, search);
+    return list;
+  }, [complaints, category, status, search]);
+
+  const formatDate = (value) => {
+    if (!value) return "Date unavailable";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  };
+
+  const statusStyles = {
+    Pending: {
+      icon: FiClock,
+      className: "",
+      style: { backgroundColor: "#FFF9C4", color: "#1a1a1a", border: "1px solid #FFC107" }
+    },
+    "In Progress": {
+      icon: FiClock,
+      className: "",
+      style: { backgroundColor: "#FFE082", color: "#1a1a1a", border: "1px solid #FFC107" }
+    },
+    Resolved: { icon: FiCheckCircle, className: "bg-success", style: {} },
+    Rejected: { icon: FiAlertCircle, className: "bg-danger", style: {} }
+  };
 
   const userName = localStorage.getItem("userName") || "Citizen";
   const getGreeting = () => {
@@ -108,7 +135,7 @@ const Dashboard = () => {
                   <FiClipboard style={{ fontSize: "1.6rem", color: "#F57C00" }} />
                 </div>
                 <div>
-                  <h3 className="mb-0 fw-bold" style={{ color: "#1a1a1a" }}>{complaints.length}</h3>
+                  <h3 className="mb-0 fw-bold" style={{ color: "#1a1a1a" }}>{totalComplaints}</h3>
                   <p className="mb-0 small" style={{ color: "#616161" }}>Total Submissions</p>
                 </div>
               </div>
@@ -123,7 +150,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h3 className="mb-0 fw-bold" style={{ color: "#1a1a1a" }}>
-                    {complaints.filter(c => c.status === "Resolved").length}
+                    {resolvedCount}
                   </h3>
                   <p className="mb-0 small" style={{ color: "#616161" }}>Successfully Resolved</p>
                 </div>
@@ -139,7 +166,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h3 className="mb-0 fw-bold" style={{ color: "#1a1a1a" }}>
-                    {complaints.filter(c => c.status === "In Progress").length}
+                    {inProgressCount}
                   </h3>
                   <p className="mb-0 small" style={{ color: "#616161" }}>Currently Processing</p>
                 </div>
@@ -213,8 +240,29 @@ const Dashboard = () => {
             Submit New Issue
           </button>
         </div>
+        {error && (
+          <div className="alert alert-danger border-0 shadow-sm" role="alert">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="alert alert-warning border-0 shadow-sm" role="status">
+            Loading complaints...
+          </div>
+        )}
         <div className="row g-4">
-          {filteredComplaints.length === 0 ? (
+          {loading ? (
+            <div className="col-12">
+              <div className="card border-0 shadow-sm text-center py-5">
+                <div className="card-body">
+                  <div className="spinner-border text-warning" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <h5 className="mt-3 mb-0" style={{ color: "#616161" }}>Preparing your complaints</h5>
+                </div>
+              </div>
+            </div>
+          ) : filteredComplaints.length === 0 ? (
             <div className="col-12">
               <div className="card border-0 shadow-sm text-center py-5">
                 <div className="card-body">
@@ -230,78 +278,79 @@ const Dashboard = () => {
               </div>
             </div>
           ) : (
-            filteredComplaints.map((complaint) => (
-              <div className="col-md-6 col-lg-4" key={complaint.id}>
-                <div className="card h-100 border-0 shadow-sm" 
-                     style={{ 
-                       borderRadius: "12px", 
-                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                       overflow: "hidden",
-                       borderTop: "3px solid #FFC107"
-                     }}
-                     onMouseEnter={(e) => {
-                       e.currentTarget.style.transform = "translateY(-6px)";
-                       e.currentTarget.style.boxShadow = "0 12px 28px rgba(255, 193, 7, 0.3)";
-                     }}
-                     onMouseLeave={(e) => {
-                       e.currentTarget.style.transform = "translateY(0)";
-                       e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.12)";
-                     }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-start gap-3 mb-3">
-                      <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                           style={{ width: "48px", height: "48px", backgroundColor: "#FFF9C4" }}>
-                        <FiAlertCircle style={{ fontSize: "1.5rem", color: "#F57C00" }} />
+            filteredComplaints.map((complaint) => {
+              const statusValue = complaint.status || "Pending";
+              const meta = statusStyles[statusValue] || statusStyles.Pending;
+              const StatusIcon = meta.icon || FiClock;
+              const badgeStyle = { fontSize: "0.7rem", ...(meta.style || {}) };
+              const badgeClass = `badge d-inline-flex align-items-center gap-1 ${meta.className || ""}`.trim();
+              const categoryLabel = complaint.category || "General";
+              const createdAt = complaint.createdAt || complaint.date;
+              const locationLabel = complaint.location || complaint.addressLine || "Location not provided";
+
+              return (
+                <div className="col-md-6 col-lg-4" key={complaint._id || complaint.id}>
+                  <div className="card h-100 border-0 shadow-sm" 
+                       style={{ 
+                         borderRadius: "12px", 
+                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                         overflow: "hidden",
+                         borderTop: "3px solid #FFC107"
+                       }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.transform = "translateY(-6px)";
+                         e.currentTarget.style.boxShadow = "0 12px 28px rgba(255, 193, 7, 0.3)";
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.transform = "translateY(0)";
+                         e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.12)";
+                       }}>
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-start gap-3 mb-3">
+                        <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style={{ width: "48px", height: "48px", backgroundColor: "#FFF9C4" }}>
+                          <FiAlertCircle style={{ fontSize: "1.5rem", color: "#F57C00" }} />
+                        </div>
+                        <div className="flex-grow-1">
+                          <h6 className="card-title mb-1 fw-bold" style={{ color: "#2c3e50" }}>
+                            {complaint.title}
+                          </h6>
+                          <span className={badgeClass} style={badgeStyle}>
+                            <StatusIcon />
+                            {statusValue}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex-grow-1">
-                        <h6 className="card-title mb-1 fw-bold" style={{ color: "#2c3e50" }}>
-                          {complaint.title}
-                        </h6>
-                        <span
-                          className={`badge d-inline-flex align-items-center gap-1 ${
-                            complaint.status === "Resolved"
-                              ? "bg-success"
-                              : complaint.status === "In Progress"
-                              ? "text-dark"
-                              : "bg-secondary"
-                          }`}
-                          style={{ 
-                            fontSize: "0.7rem",
-                            backgroundColor: complaint.status === "In Progress" ? "#FFC107" : undefined
-                          }}
-                        >
-                          {complaint.status === "Resolved" ? <FiCheckCircle /> :
-                           complaint.status === "In Progress" ? <FiClock /> :
-                           <FiClock />}
-                          {complaint.status}
-                        </span>
+                      <p className="card-text text-muted mb-3" style={{ fontSize: "0.875rem", lineHeight: "1.5" }}>
+                        {complaint.description}
+                      </p>
+                      <div className="border-top pt-3 mt-3">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <span className="badge d-inline-flex align-items-center gap-1" 
+                                style={{ fontSize: "0.75rem", backgroundColor: "#FFF9C4", color: "#1a1a1a", border: "1px solid #FFC107" }}>
+                            <FiTag />
+                            {categoryLabel}
+                          </span>
+                          <small className="text-muted d-flex align-items-center gap-1" style={{ fontSize: "0.75rem" }}>
+                            <FiCalendar />
+                            {formatDate(createdAt)}
+                          </small>
+                        </div>
+                        <div className="text-muted d-flex align-items-center gap-2" style={{ fontSize: "0.75rem" }}>
+                          <FiMapPin />
+                          <span>{locationLabel}</span>
+                        </div>
+                        <button className="btn btn-sm w-100 mt-3 fw-semibold" 
+                                style={{ backgroundColor: "#FFC107", color: "#1a1a1a", border: "none" }}>
+                          <FiEye className="me-1" />
+                          View Full Details
+                        </button>
                       </div>
-                    </div>
-                    <p className="card-text text-muted mb-3" style={{ fontSize: "0.875rem", lineHeight: "1.5" }}>
-                      {complaint.description}
-                    </p>
-                    <div className="border-top pt-3 mt-3">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="badge d-inline-flex align-items-center gap-1" 
-                              style={{ fontSize: "0.75rem", backgroundColor: "#FFF9C4", color: "#1a1a1a", border: "1px solid #FFC107" }}>
-                          <FiTag />
-                          {complaint.category}
-                        </span>
-                        <small className="text-muted d-flex align-items-center gap-1" style={{ fontSize: "0.75rem" }}>
-                          <FiCalendar />
-                          {complaint.date}
-                        </small>
-                      </div>
-                      <button className="btn btn-sm w-100 mt-2 fw-semibold" 
-                              style={{ backgroundColor: "#FFC107", color: "#1a1a1a", border: "none" }}>
-                        <FiEye className="me-1" />
-                        View Full Details
-                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </section>

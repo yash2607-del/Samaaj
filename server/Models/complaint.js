@@ -11,6 +11,12 @@ const complaintSchema = new Schema(
     },
     description: { type: String, default: "" },
     location: { type: String, required: true },
+    addressLine: { type: String, default: "" },
+    landmark: { type: String, default: "" },
+    city: { type: String, default: "" },
+    district: { type: String, default: "" },
+    state: { type: String, default: "" },
+    pincode: { type: String, default: "" },
     photo: { type: String, default: "" },
     status: {
       type: String,
