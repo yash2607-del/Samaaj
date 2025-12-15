@@ -7,19 +7,11 @@ const departmentSchema = new mongoose.Schema({
         unique: true,
         trim: true
     },
-    description: {
-        type: String,
-        default: ''
-    },
     // List of areas this department is responsible for
     areas: [{
         type: String,
         trim: true
     }],
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
     isActive: {
         type: Boolean,
         default: true

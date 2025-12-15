@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 
 // models
 import { User, Citizen, Moderator } from './models/User.js';
+import Department from './models/Department.js';
 
 // middleware
 import auth from './middleware/auth.js';
@@ -52,15 +53,38 @@ app.post('/signup', async (req, res) => {
 
     const user = await User.create({ name, email, password: hashedPassword, role });
 
+    let deptIdForToken = null;
+
     if (role === 'Citizen') {
       await Citizen.create({ userId: user._id, name, email, password: hashedPassword, role, location, issueCategory });
     } else if (role === 'Moderator') {
-      await Moderator.create({ userId: user._id, name, email, password: hashedPassword, role, department, assignedArea });
+      // resolve department if provided (accepts ObjectId or name)
+      let deptId = null;
+      if (department) {
+        const deptStr = String(department).trim();
+        if (mongoose.Types.ObjectId.isValid(deptStr)) {
+          const d = await Department.findById(deptStr);
+          if (d) deptId = d._id;
+        }
+        if (!deptId) {
+          const d = await Department.findOne({ name: new RegExp('^' + deptStr.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&') + '$', 'i') });
+          if (d) deptId = d._id;
+        }
+      }
+
+      await Moderator.create({ userId: user._id, name, email, password: hashedPassword, role, department: deptId, assignedArea });
+      if (deptId) deptIdForToken = String(deptId);
     }
 
     // Optionally return a token so the client can be logged in immediately
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    return res.status(201).json({ message: 'User created successfully', token, user: { id: user._id, role: user.role, name: user.name, email: user.email } });
+    const tokenPayload = { id: user._id, role: user.role };
+    if (deptIdForToken) tokenPayload.department = deptIdForToken;
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    const userRes = { id: user._id, role: user.role, name: user.name, email: user.email };
+    if (deptIdForToken) userRes.department = deptIdForToken;
+
+    return res.status(201).json({ message: 'User created successfully', token, user: userRes });
   } catch (err) {
     console.error('Signup error:', err);
     return res.status(400).json({ error: err.message });
@@ -79,11 +103,23 @@ app.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid email or password' });
 
-    // generate JWT
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    // generate JWT and include moderator department when available
+    let deptForToken = null;
+    if (user.role === 'Moderator') {
+      const mod = await Moderator.findOne({ userId: user._id }).select('department').populate('department', 'name');
+      if (mod && mod.department) deptForToken = String(mod.department._id || mod.department);
+    }
+
+    const tokenPayload = { id: user._id, role: user.role };
+    if (deptForToken) tokenPayload.department = deptForToken;
+
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     // return token and user info so client can store and use it
-    return res.status(200).json({ message: 'Login successful', token, user: { id: user._id, role: user.role, name: user.name, email: user.email } });
+    const userRes = { id: user._id, role: user.role, name: user.name, email: user.email };
+    if (deptForToken) userRes.department = deptForToken;
+
+    return res.status(200).json({ message: 'Login successful', token, user: userRes });
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ error: err.message });
@@ -94,17 +130,23 @@ app.post('/login', async (req, res) => {
 app.get('/profile', auth, async (req, res) => {
   try {
     const { id, role } = req.user;
+    console.log('Profile request - User ID:', id, 'Role:', role);
 
     let userData;
-    if (role === 'Citizen') {
+    const roleLower = String(role || '').toLowerCase();
+    
+    if (roleLower === 'citizen') {
       userData = await Citizen.findOne({ userId: id }).select('-password');
-    } else if (role === 'Moderator') {
-      userData = await Moderator.findOne({ userId: id }).select('-password');
+    } else if (roleLower === 'moderator') {
+      userData = await Moderator.findOne({ userId: id }).select('-password').populate('department', 'name areas');
     }
 
+    console.log('Found user data:', userData ? 'Yes' : 'No');
+    
     if (!userData) return res.status(404).json({ error: 'User not found' });
     res.json({ user: userData });
   } catch (err) {
+    console.error('Profile error:', err);
     res.status(500).json({ error: err.message });
   }
 });

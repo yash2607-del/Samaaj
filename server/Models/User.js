@@ -12,7 +12,7 @@ const userSchema = new Schema({
   timestamps: true,
   versionKey: false
 });
-const User = mongoose.model('User', userSchema, 'users');
+const User = mongoose.models.User || mongoose.model('User', userSchema, 'users');
 
 
 const citizenSchema = new Schema({
@@ -27,7 +27,7 @@ const citizenSchema = new Schema({
   timestamps: true,
   versionKey: false
 });
-const Citizen = mongoose.model('Citizen', citizenSchema, 'citizen');
+const Citizen = mongoose.models.Citizen || mongoose.model('Citizen', citizenSchema, 'citizen');
 
 
 const moderatorSchema = new Schema({
@@ -36,12 +36,13 @@ const moderatorSchema = new Schema({
   email: { type: String, required: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['Moderator'], required: true },
-  department: { type: String, required: true },
-  assignedArea: { type: String, required: true }
+  // store as ObjectId referencing Department; keep not-required during migration
+  department: { type: Schema.Types.ObjectId, ref: 'Department', required: false },
+  assignedArea: { type: String, required: false }
 }, {
   timestamps: true,
   versionKey: false
 });
-const Moderator = mongoose.model('Moderator', moderatorSchema, 'moderator');
+const Moderator = mongoose.models.Moderator || mongoose.model('Moderator', moderatorSchema, 'moderator');
 
 export { User, Citizen, Moderator };

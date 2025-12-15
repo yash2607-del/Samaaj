@@ -1,84 +1,138 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import { FiMail, FiLock, FiArrowLeft } from 'react-icons/fi';
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    axios.post("http://localhost:3000/login", { email, password })
-      .then(res => {
-        // store token and user info for authenticated requests
-        if (res.data.token) localStorage.setItem('token', res.data.token);
-        if (res.data.user) {
-          localStorage.setItem('user', JSON.stringify(res.data.user));
-          if (res.data.user.name) localStorage.setItem('userName', res.data.user.name);
-          if (res.data.user.id) localStorage.setItem('userId', res.data.user.id);
-        }
-        localStorage.setItem('userType', res.data.user?.role || '');
-        navigate("/dashboard");
-      })
-      .catch(err => {
-        setError(err.response?.data?.error || "Login failed");
-      });
+    setLoading(true);
+    
+    try {
+      const res = await axios.post("http://localhost:3000/login", { email, password });
+      
+      // Store token and user info
+      if (res.data.token) localStorage.setItem('token', res.data.token);
+      if (res.data.user) {
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        if (res.data.user.name) localStorage.setItem('userName', res.data.user.name);
+        if (res.data.user.id) localStorage.setItem('userId', res.data.user.id);
+      }
+      
+      // Navigate based on role
+      const role = res.data.user?.role || '';
+      if (/moderator/i.test(role)) {
+        navigate('/moderator-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <>
-      <section className="wrapper">
-        <div className="container">
-          <div className="col-sm-8 offset-sm-2 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4 text-center">
-            <form className="rounded bg-white shadow p-5" onSubmit={handleSubmit}>
-              <h1 className="text-dark fw-bolder fs-4 mb-2">Login Form</h1>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+      <div className="container">
+        <div className="row justify-content-center">
+          <div className="col-md-6 col-lg-5 col-xl-4">
+            <Link to="/" className="btn btn-link text-decoration-none mb-3" style={{ color: '#616161' }}>
+              <FiArrowLeft className="me-2" />
+              Back to Home
+            </Link>
+            
+            <div className="card border-0 shadow-lg" style={{ borderRadius: '20px' }}>
+              <div className="card-body p-5">
+                <div className="text-center mb-4">
+                  <h2 className="fw-bold mb-2" style={{ color: '#1a1a1a' }}>Welcome Back</h2>
+                  <p style={{ color: '#616161' }}>Sign in to continue to Samaaj</p>
+                </div>
 
-              {error && <div className="alert alert-danger py-2">{error}</div>}
+                {error && (
+                  <div className="alert alert-danger d-flex align-items-center" style={{ borderRadius: '12px' }}>
+                    <i className="bi bi-exclamation-circle me-2"></i>
+                    <span>{error}</span>
+                  </div>
+                )}
 
-              <div className="form-floating mb-3">
-                <input
-                  type="email"
-                  className="form-control"
-                  id="floating-input"
-                  placeholder="xyz@company.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-                <label htmlFor="floatingInput">Email Address</label>
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold" style={{ color: '#424242' }}>Email Address</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
+                        <FiMail style={{ color: '#616161' }} />
+                      </span>
+                      <input
+                        type="email"
+                        className="form-control"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        required
+                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', padding: '0.75rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold" style={{ color: '#424242' }}>Password</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
+                        <FiLock style={{ color: '#616161' }} />
+                      </span>
+                      <input
+                        type="password"
+                        className="form-control"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', padding: '0.75rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="btn btn-lg w-100 mb-3"
+                    disabled={loading}
+                    style={{ backgroundColor: '#FFB347', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600', padding: '0.75rem' }}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Signing in...
+                      </>
+                    ) : 'Sign In'}
+                  </button>
+
+                  <div className="text-center">
+                    <p className="mb-0" style={{ color: '#616161' }}>
+                      Don't have an account? <Link to="/signup" style={{ color: '#FFB347', fontWeight: '600', textDecoration: 'none' }}>Sign Up</Link>
+                    </p>
+                  </div>
+                </form>
               </div>
+            </div>
 
-              <div className="form-floating mb-3">
-                <input
-                  type="password"
-                  className="form-control"
-                  id="floatingPassword"
-                  placeholder="Password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
-                <label htmlFor="floatingPassword">Password</label>
-              </div>
-
-              <div className="btn-group w-100 mb-3">
-                <button type="submit" className="btn btn-warning w-100">Login</button>
-              </div>
-
-              <p className="mt-2 text-center text-sm text-gray-600 mb-5">
-                New Member?
-                <a className="sign-in" href="/signup"> Sign Up</a>
-              </p>
-
-              <a href='/forgot' className='mt-2 text-center text-sm text-gray-600 mb-5'> Forgot Password?</a>
-            </form>
+            <div className="text-center mt-3">
+              <small style={{ color: '#616161' }}>
+                © 2025 Samaaj. All rights reserved.
+              </small>
+            </div>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </div>
   );
 }
 
