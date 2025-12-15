@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../api.js";
-import { FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, FiSend } from 'react-icons/fi';
+import CitizenSidebar from "../../components/CitizenSidebar";
+import { FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, FiSend, FiArrowLeft } from 'react-icons/fi';
 
 const Create = () => {
   const navigate = useNavigate();
@@ -201,9 +202,35 @@ const Create = () => {
     }
   };
   return (
-    <div style={{ backgroundColor: "#FFFEF7", minHeight: "100vh", paddingTop: "3rem", paddingBottom: "3rem" }}>
-      <div className="container">
-        {errorMsg && (
+    <div className="d-flex" style={{ minHeight: "100vh", backgroundColor: "#f5f7fa" }}>
+      <CitizenSidebar />
+      <div className="flex-grow-1" style={{ overflow: "auto", backgroundColor: "#f5f7fa" }}>
+        {/* Header */}
+        <section
+          className="py-3 px-4 bg-white border-bottom"
+          style={{ position: "sticky", top: 0, zIndex: 100 }}
+        >
+          <div className="d-flex align-items-center">
+            <button
+              className="btn btn-sm me-3"
+              onClick={() => navigate("/dashboard")}
+              style={{ backgroundColor: "white", border: "none" }}
+            >
+              <FiArrowLeft style={{ fontSize: "1.2rem", color: "#1a1a1a" }} />
+            </button>
+            <div>
+              <h4 className="mb-1 fw-bold" style={{ color: "#1a1a1a" }}>Submit Complaint</h4>
+              <p className="mb-0 small" style={{ color: "#424242" }}>
+                Report an issue in your area
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Content */}
+        <section className="py-4 px-4">
+          <div className="container">
+            {errorMsg && (
           <div className="alert d-flex align-items-center shadow-sm mb-4" style={{ backgroundColor: "#FFEBEE", color: "#C62828", border: "none", borderLeft: "4px solid #D32F2F", borderRadius: "8px", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
             <FiAlertCircle className="me-2" style={{ fontSize: "1.3rem", flexShrink: 0 }} />
             <span>{errorMsg}</span>
@@ -219,8 +246,8 @@ const Create = () => {
         {/* Main Form Card */}
         <div className="card border-0 shadow-lg" style={{ borderRadius: "16px", overflow: "hidden" }}>
           {/* Card Header */}
-          <div className="card-header border-0 py-4" style={{ background: "linear-gradient(135deg, #FFC107 0%, #FFD54F 100%)" }}>
-            <h4 className="fw-bold mb-0" style={{ color: "#1a1a1a", fontSize: "1.4rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+          <div className="card-header border-0 py-4" style={{ background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)" }}>
+            <h4 className="fw-bold mb-0" style={{ color: "white", fontSize: "1.4rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
               Complaint Information
             </h4>
           </div>
@@ -230,9 +257,9 @@ const Create = () => {
             <div className="row g-4">
               {/* Issue Details Section */}
               <div className="col-12">
-                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF9C4", border: "2px solid #FFD54F" }}>
+                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF8F0", border: "2px solid #FFD8A8" }}>
                   <h5 className="fw-bold mb-4 d-flex align-items-center" style={{ color: "#1a1a1a", fontSize: "1.15rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                    <FiAlertCircle className="me-2" style={{ color: "#FFC107" }} />
+                    <FiAlertCircle className="me-2" style={{ color: "#FFB347" }} />
                     Issue Details
                   </h5>
 
@@ -255,7 +282,7 @@ const Create = () => {
                         transition: "all 0.3s ease",
                         fontWeight: "500"
                       }}
-                      onFocus={(e) => e.target.style.border = "2px solid #FFC107"}
+                      onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
                       onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
                     />
                     <label htmlFor="problemTitle" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Problem Title <span style={{ color: "#D32F2F" }}>*</span></label>
@@ -281,7 +308,7 @@ const Create = () => {
                             fontWeight: "500",
                             height: "50px"
                           }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFC107"}
+                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
                           onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
                         >
                           <option value="" disabled>
@@ -318,7 +345,7 @@ const Create = () => {
                             fontWeight: "500",
                             height: "50px"
                           }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFC107"}
+                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
                           onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
                         >
                           <option value="">Select Department</option>
@@ -352,7 +379,7 @@ const Create = () => {
                       onChange={(e) => setDescription(e.target.value)}
                       required
                       disabled={submitting}
-                      onFocus={(e) => e.target.style.border = "2px solid #FFC107"}
+                      onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
                       onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
                     ></textarea>
                     <label htmlFor="problemDescription" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Problem Description <span style={{ color: "#D32F2F" }}>*</span></label>
@@ -362,9 +389,9 @@ const Create = () => {
 
               {/* Location Section */}
               <div className="col-12">
-                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF9C4", border: "2px solid #FFD54F" }}>
+                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF8F0", border: "2px solid #FFD8A8" }}>
                   <h5 className="fw-bold mb-4 d-flex align-items-center" style={{ color: "#1a1a1a", fontSize: "1.15rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                    <FiMapPin className="me-2" style={{ color: "#FFC107" }} />
+                    <FiMapPin className="me-2" style={{ color: "#FFB347" }} />
                     Location Information <span style={{ color: "#D32F2F" }}>*</span>
                   </h5>
 
@@ -381,7 +408,7 @@ const Create = () => {
                           onChange={(e) => setAddressLine(e.target.value)}
                           disabled={submitting}
                           style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFC107"}
+                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
                           onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
                         />
                         <label htmlFor="addressLine">Address Line <span style={{ color: "#D32F2F" }}>*</span></label>
@@ -399,7 +426,7 @@ const Create = () => {
                           onChange={(e) => setLandmark(e.target.value)}
                           disabled={submitting}
                           style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFC107"}
+                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
                           onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
                         />
                         <label htmlFor="landmark">Landmark</label>
@@ -487,7 +514,7 @@ const Create = () => {
                         type="button"
                         className="btn fw-semibold px-4 py-3 shadow-sm"
                         style={{
-                          background: "linear-gradient(135deg, #FFC107 0%, #FFD54F 100%)",
+                          background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)",
                           color: "#1a1a1a",
                           border: "none",
                           borderRadius: "10px",
@@ -508,9 +535,9 @@ const Create = () => {
 
               {/* Photo Upload Section */}
               <div className="col-12">
-                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF9C4", border: "2px solid #FFD54F" }}>
+                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF8F0", border: "2px solid #FFD8A8" }}>
                   <h5 className="fw-bold mb-4 d-flex align-items-center" style={{ color: "#1a1a1a", fontSize: "1.15rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                    <FiUpload className="me-2" style={{ color: "#FFC107" }} />
+                    <FiUpload className="me-2" style={{ color: "#FFB347" }} />
                     Supporting Evidence <span style={{ color: "#D32F2F", fontSize: "0.9rem", marginLeft: "0.25rem" }}>*</span>
                   </h5>
 
@@ -545,7 +572,7 @@ const Create = () => {
 
                   {photoPreview && (
                     <div className="text-center mt-4">
-                      <div className="border rounded-3 p-3 shadow-sm" style={{ backgroundColor: "white", borderColor: "#FFD54F" }}>
+                      <div className="border rounded-3 p-3 shadow-sm" style={{ backgroundColor: "white", borderColor: "#FFD8A8" }}>
                         <p className="small fw-semibold mb-3" style={{ color: "#616161", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
                           Image Preview:
                         </p>
@@ -568,7 +595,7 @@ const Create = () => {
                     type="submit"
                     className="btn btn-lg fw-bold px-5 py-3 shadow-sm"
                     style={{
-                      background: "linear-gradient(135deg, #FFC107 0%, #FFD54F 100%)",
+                      background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)",
                       color: "#1a1a1a",
                       border: "none",
                       borderRadius: "12px",
@@ -603,8 +630,12 @@ const Create = () => {
           </form>
         </div>
       </div>
+        </section>
+      </div>
     </div>
   );
 };
 
 export default Create;
+
+

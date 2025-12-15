@@ -19,7 +19,7 @@ const statusMeta = {
   Pending: {
     icon: FiClock,
     badgeClass: "bg-warning text-dark",
-    surface: "#FFF9C4"
+    surface: "#FFF8F0"
   },
   "In Progress": {
     icon: FiRefreshCw,
@@ -108,7 +108,7 @@ export default function Usertrack() {
         <CitizenSidebar />
         <div className="flex-grow-1 d-flex align-items-center justify-content-center">
           <div className="text-center">
-            <div className="spinner-border" style={{ width: "3rem", height: "3rem", color: "#FFC107" }} role="status">
+            <div className="spinner-border" style={{ width: "3rem", height: "3rem", color: "#FFB347" }} role="status">
               <span className="visually-hidden">Loading...</span>
             </div>
             <div className="mt-3 fw-semibold" style={{ color: "#616161", fontSize: "1.1rem" }}>
@@ -132,7 +132,7 @@ export default function Usertrack() {
               <p className="text-muted mb-4">{error}</p>
               <button 
                 className="btn fw-semibold px-4"
-                style={{ backgroundColor: "#FFC107", color: "#1a1a1a", border: "none" }}
+                style={{ backgroundColor: "#FFB347", color: "#1a1a1a", border: "none" }}
                 onClick={() => window.location.reload()}
               >
                 Try Again
@@ -152,8 +152,8 @@ export default function Usertrack() {
           <div className="card border-0 shadow-sm" style={{ maxWidth: "600px", width: "100%" }}>
             <div className="card-body text-center p-5">
               <div className="rounded-circle d-inline-flex align-items-center justify-content-center mb-4"
-                   style={{ width: "100px", height: "100px", backgroundColor: "#FFF9C4" }}>
-                <FiInbox style={{ fontSize: "3rem", color: "#F57C00" }} />
+                   style={{ width: "100px", height: "100px", backgroundColor: "#FFF8F0" }}>
+                <FiInbox style={{ fontSize: "3rem", color: "#FFB347" }} />
               </div>
               <h4 className="mb-3 fw-bold" style={{ color: "#1a1a1a" }}>No Complaints Yet</h4>
               <p className="text-muted mb-4" style={{ fontSize: "1.05rem" }}>
@@ -161,7 +161,7 @@ export default function Usertrack() {
               </p>
               <button 
                 className="btn btn-lg fw-semibold px-5"
-                style={{ backgroundColor: "#FFC107", color: "#1a1a1a", border: "none" }}
+                style={{ backgroundColor: "#FFB347", color: "#1a1a1a", border: "none" }}
                 onClick={() => navigate('/complaint')}
               >
                 <FiPlusCircle className="me-2" />
@@ -180,7 +180,7 @@ export default function Usertrack() {
       <div className="flex-grow-1" style={{ overflow: "auto" }}>
         
         {/* Header Section */}
-        <section className="py-4 px-4 border-bottom shadow-sm" style={{ background: "linear-gradient(135deg, #FFC107 0%, #FFD54F 100%)" }}>
+        <section className="py-4 px-4 border-bottom shadow-sm" style={{ background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)" }}>
           <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-between">
             <div>
               <h3 className="mb-2 fw-bold" style={{ color: "#1a1a1a", fontSize: "1.75rem" }}>
@@ -197,7 +197,7 @@ export default function Usertrack() {
         <section className="py-4 px-4" style={{ backgroundColor: "#FFFEF7" }}>
           <div className="row g-3">
             <div className="col-6 col-md-3">
-              <div className="card border-0 shadow-sm h-100" style={{ borderTop: "4px solid #FFC107" }}>
+              <div className="card border-0 shadow-sm h-100" style={{ borderTop: "4px solid #FFB347" }}>
                 <div className="card-body text-center p-3 p-md-4">
                   <div className="fw-bold mb-1" style={{ fontSize: "2rem", color: "#1a1a1a" }}>
                     {summary.total}
@@ -207,9 +207,9 @@ export default function Usertrack() {
               </div>
             </div>
             <div className="col-6 col-md-3">
-              <div className="card border-0 shadow-sm h-100" style={{ borderTop: "4px solid #F57C00" }}>
+              <div className="card border-0 shadow-sm h-100" style={{ borderTop: "4px solid #FFB347" }}>
                 <div className="card-body text-center p-3 p-md-4">
-                  <div className="fw-bold mb-1" style={{ fontSize: "2rem", color: "#F57C00" }}>
+                  <div className="fw-bold mb-1" style={{ fontSize: "2rem", color: "#FFB347" }}>
                     {summary.pending}
                   </div>
                   <div className="small text-muted fw-semibold">Pending Review</div>
@@ -243,7 +243,7 @@ export default function Usertrack() {
         <section className="py-4 px-4" style={{ backgroundColor: "#FFFEF7" }}>
           <div className="mb-4">
             <h5 className="fw-semibold d-flex align-items-center gap-2 mb-1" style={{ color: "#1a1a1a" }}>
-              <FiClock style={{ color: "#FFC107" }} />
+              <FiClock style={{ color: "#FFB347" }} />
               All Your Complaints ({issues.length})
             </h5>
             <p className="text-muted mb-0 small">Click on any card to view complete details and current status</p>
@@ -339,13 +339,13 @@ export default function Usertrack() {
                         <div className="row g-2 mb-3">
                           <div className="col-12">
                             <div className="d-flex align-items-center gap-2 text-muted small">
-                              <FiTag style={{ color: "#FFC107", fontSize: "1rem" }} />
+                              <FiTag style={{ color: "#FFB347", fontSize: "1rem" }} />
                               <span className="fw-semibold">{issue.category || "Uncategorized"}</span>
                             </div>
                           </div>
                           <div className="col-12">
                             <div className="d-flex align-items-center gap-2 text-muted small">
-                              <FiMapPin style={{ color: "#FFC107", fontSize: "1rem" }} />
+                              <FiMapPin style={{ color: "#FFB347", fontSize: "1rem" }} />
                               <span style={{ 
                                 overflow: "hidden", 
                                 textOverflow: "ellipsis", 
@@ -357,7 +357,7 @@ export default function Usertrack() {
                           </div>
                           <div className="col-12">
                             <div className="d-flex align-items-center gap-2 text-muted small">
-                              <FiCalendar style={{ color: "#FFC107", fontSize: "1rem" }} />
+                              <FiCalendar style={{ color: "#FFB347", fontSize: "1rem" }} />
                               <span>{formatDate(issue.createdAt)}</span>
                             </div>
                           </div>
@@ -367,7 +367,7 @@ export default function Usertrack() {
                         <button 
                           className="btn btn-sm w-100 fw-semibold d-flex align-items-center justify-content-center gap-2" 
                           style={{ 
-                            backgroundColor: "#FFC107", 
+                            backgroundColor: "#FFB347", 
                             color: "#1a1a1a", 
                             border: "none",
                             padding: "0.6rem"
@@ -389,3 +389,5 @@ export default function Usertrack() {
     </div>
   );
 }
+
+

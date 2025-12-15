@@ -24,7 +24,17 @@ const complaintSchema = new Schema(
       default: "Pending"
     },
     userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
-    department: { type: Schema.Types.ObjectId, ref: "Department", required: true }
+    department: { type: Schema.Types.ObjectId, ref: "Department", required: true },
+    assignedTo: { type: Schema.Types.ObjectId, ref: "Moderator", default: null },
+    history: [
+      {
+        status: { type: String },
+        changedBy: { type: Schema.Types.ObjectId, ref: "Moderator" },
+        changedByEmail: { type: String },
+        note: { type: String, default: "" },
+        changedAt: { type: Date, default: Date.now }
+      }
+    ]
   },
   { timestamps: true, versionKey: false }
 );
