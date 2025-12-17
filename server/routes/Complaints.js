@@ -353,6 +353,11 @@ router.post('/assign/:complaintId', async (req, res) => {
 // Create new complaint (accept multipart/form-data with `photo` field)
 router.post("/", auth, upload.single('photo'), async (req, res) => {
   try {
+    // Prevent moderators from filing complaints
+    const roleLower = String(req.user?.role || '').toLowerCase();
+    if (roleLower === 'moderator') {
+      return res.status(403).json({ error: 'Moderators are not allowed to file complaints' });
+    }
     // helpful debug info when req.body is unexpectedly undefined
     console.log('Create complaint - Content-Type:', req.headers && req.headers['content-type']);
     if (!req.body) console.log('Create complaint - req.body is undefined or empty');

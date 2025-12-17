@@ -7,11 +7,18 @@ import { Moderator as ModeratorUser } from '../models/User.js';
 import ModeratorLegacy from '../models/Moderator.js';
 
 const auth = async (req, res, next) => {
-  const authHeader = req.header('Authorization');
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
-  if (!token) return res.status(401).json({ error: 'No token provided' });
-
+  // Prefer session-based auth
   try {
+    if (req.session && req.session.user) {
+      req.user = req.session.user;
+      return next();
+    }
+
+    // Fallback to JWT (for API clients still using tokens)
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+    if (!token) return res.status(401).json({ error: 'No token or session provided' });
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // If moderator token doesn't carry department (old token / signup token), backfill it from DB.
@@ -37,9 +44,9 @@ const auth = async (req, res, next) => {
     }
 
     req.user = decoded; // { id, role, department? }
-    next();
+    return next();
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token or session' });
   }
 };
 

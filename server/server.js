@@ -7,6 +7,8 @@ import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import bcrypt from 'bcryptjs';
 
 // models
@@ -22,7 +24,8 @@ import trackRouter from './routes/track.js';
 import moderatorRouter from './routes/moderator.js';
 
 const app = express();
-app.use(cors());
+// allow CORS with credentials so the client can send/receive session cookies
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,6 +44,19 @@ mongoose.connect(MONGO_URI)
     console.error('MongoDB connection error:', err);
     process.exit(1);
   });
+
+// Session setup (stores sessions in MongoDB). Cookie maxAge set to 3 weeks.
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'change_this_secret',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: MONGO_URI, collectionName: 'sessions', ttl: 60 * 60 * 24 * 21 }),
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 21, // 3 weeks
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production'
+  }
+}));
 
 // ---------------- Signup ----------------
 app.post('/signup', async (req, res) => {
@@ -113,17 +129,34 @@ app.post('/login', async (req, res) => {
     const tokenPayload = { id: user._id, role: user.role };
     if (deptForToken) tokenPayload.department = deptForToken;
 
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
+    // create session for the user (session cookie lives for 3 weeks)
+    req.session.user = { id: String(user._id), role: user.role };
+    if (deptForToken) req.session.user.department = deptForToken;
 
-    // return token and user info so client can store and use it
+    // return user info and also a JWT for backward compatibility
     const userRes = { id: user._id, role: user.role, name: user.name, email: user.email };
     if (deptForToken) userRes.department = deptForToken;
 
-    return res.status(200).json({ message: 'Login successful', token, user: userRes });
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    return res.status(200).json({ message: 'Login successful', user: userRes, token });
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ error: err.message });
   }
+});
+
+// ---------------- Logout ----------------
+app.post('/logout', (req, res) => {
+  if (!req.session) return res.status(200).json({ message: 'No active session' });
+  req.session.destroy(err => {
+    if (err) {
+      console.error('Session destroy error:', err);
+      return res.status(500).json({ error: 'Failed to log out' });
+    }
+    res.clearCookie('connect.sid');
+    return res.json({ message: 'Logged out' });
+  });
 });
 
 // ---------------- Get Profile ----------------
