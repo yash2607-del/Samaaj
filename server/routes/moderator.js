@@ -4,16 +4,26 @@ import jwt from 'jsonwebtoken';
 import Department from '../models/Department.js';
 import Moderator from '../models/Moderator.js';
 import Complaint from '../models/complaint.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/moderator-view', async (req, res) => {
+router.get('/moderator-view', auth, async (req, res) => {
   try {
-    const { department, assignedArea } = req.query;
+    // only moderators may access this route
+    const roleLower = String(req.user?.role || '').toLowerCase();
+    if (roleLower !== 'moderator') return res.status(403).json({ message: 'Forbidden' });
 
+    const { department, assignedArea } = req.query;
     const filter = {};
-    if (department) filter.category = department; 
+    if (department) filter.category = department;
     if (assignedArea) filter.location = assignedArea;
+
+    // scope to moderator's department if available
+    const deptFromToken = req.user?.department;
+    if (deptFromToken) {
+      filter.department = deptFromToken;
+    }
 
     const complaints = await Complaint.find(filter).sort({ createdAt: -1 }).lean();
     res.json(complaints);

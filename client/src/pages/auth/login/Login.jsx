@@ -16,7 +16,7 @@ function Login() {
     setLoading(true);
     
     try {
-      const res = await axios.post("http://localhost:3000/login", { email, password });
+      const res = await axios.post("http://localhost:3000/login", { email, password }, { withCredentials: true });
       
       // Store token and user info
       if (res.data.token) localStorage.setItem('token', res.data.token);
@@ -26,6 +26,8 @@ function Login() {
         if (res.data.user.id) localStorage.setItem('userId', res.data.user.id);
       }
       
+      // Notify app about auth change so UI updates (navbar, routes)
+      window.dispatchEvent(new Event('authChanged'));
       // Navigate based on role
       const role = res.data.user?.role || '';
       if (/moderator/i.test(role)) {
