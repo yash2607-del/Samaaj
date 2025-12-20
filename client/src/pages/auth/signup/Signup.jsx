@@ -2,18 +2,19 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import axios from "axios";
-import { FiUser, FiMail, FiLock, FiMapPin, FiTag, FiArrowLeft } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiMapPin, FiTag, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
 
 function Signup() {
   const [role, setRole] = useState("Citizen");
   const [department, setDepartment] = useState("");
   const [fullName, setFullName] = useState("");
   const [location, setLocation] = useState("");
-  const [issueCategory, setIssueCategory] = useState("");
   const [assignedArea, setAssignedArea] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,7 @@ function Signup() {
       setError("Passwords do not match.");
       return;
     }
-    if (role === "Citizen" && (!location || !issueCategory)) {
+    if (role === "Citizen" && !location) {
       setError("Please fill all citizen fields.");
       return;
     }
@@ -48,7 +49,6 @@ function Signup() {
         department,
         name: fullName,
         location,
-        issueCategory,
         assignedArea,
         email,
         password
@@ -72,7 +72,6 @@ function Signup() {
     setDepartment("");
     setAssignedArea("");
     setLocation("");
-    setIssueCategory("");
   };
 
   return (
@@ -193,14 +192,21 @@ function Signup() {
                           <FiLock style={{ color: '#616161' }} />
                         </span>
                         <input
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           className="form-control"
                           placeholder="••••••••"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           required
-                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
+                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRight: 'none' }}
                         />
+                        <span 
+                          className="input-group-text bg-white" 
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', cursor: 'pointer' }}
+                        >
+                          {showPassword ? <FiEyeOff style={{ color: '#616161' }} /> : <FiEye style={{ color: '#616161' }} />}
+                        </span>
                       </div>
                     </div>
 
@@ -211,14 +217,21 @@ function Signup() {
                           <FiLock style={{ color: '#616161' }} />
                         </span>
                         <input
-                          type="password"
+                          type={showConfirmPassword ? "text" : "password"}
                           className="form-control"
                           placeholder="••••••••"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           required
-                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
+                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRight: 'none' }}
                         />
+                        <span 
+                          className="input-group-text bg-white" 
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', cursor: 'pointer' }}
+                        >
+                          {showConfirmPassword ? <FiEyeOff style={{ color: '#616161' }} /> : <FiEye style={{ color: '#616161' }} />}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -244,28 +257,6 @@ function Signup() {
                         </div>
                       </div>
 
-                      <div className="mb-3">
-                        <label className="form-label fw-semibold" style={{ color: '#424242' }}>Primary Interest</label>
-                        <div className="input-group">
-                          <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                            <FiTag style={{ color: '#616161' }} />
-                          </span>
-                          <select
-                            className="form-select"
-                            value={issueCategory}
-                            onChange={(e) => setIssueCategory(e.target.value)}
-                            required
-                            style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
-                          >
-                            <option value="">Select Category</option>
-                            <option>Electricity</option>
-                            <option>Road</option>
-                            <option>Water</option>
-                            <option>Sanitization</option>
-                            <option>Public Safety</option>
-                          </select>
-                        </div>
-                      </div>
                     </>
                   )}
 

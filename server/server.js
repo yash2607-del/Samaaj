@@ -22,6 +22,7 @@ import auth from './middleware/auth.js';
 import complaintsRouter from './routes/complaints.js';
 import trackRouter from './routes/track.js';
 import moderatorRouter from './routes/moderator.js';
+import notificationsRouter from './routes/notifications.js';
 
 const app = express();
 // allow CORS with credentials so the client can send/receive session cookies
@@ -61,7 +62,7 @@ app.use(session({
 // ---------------- Signup ----------------
 app.post('/signup', async (req, res) => {
   try {
-    const { role, name, email, password, location, issueCategory, department, assignedArea } = req.body;
+    const { role, name, email, password, location, department, assignedArea } = req.body;
     if (!role || !name || !email || !password) return res.status(400).json({ error: 'Missing required fields' });
 
     // hash password
@@ -72,7 +73,7 @@ app.post('/signup', async (req, res) => {
     let deptIdForToken = null;
 
     if (role === 'Citizen') {
-      await Citizen.create({ userId: user._id, name, email, password: hashedPassword, role, location, issueCategory });
+      await Citizen.create({ userId: user._id, name, email, password: hashedPassword, role, location });
     } else if (role === 'Moderator') {
       // resolve department if provided (accepts ObjectId or name)
       let deptId = null;
@@ -184,10 +185,110 @@ app.get('/profile', auth, async (req, res) => {
   }
 });
 
+// ---------------- Update User Profile ----------------
+app.put('/api/users/:userId', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, email, location } = req.body;
+    
+    // Verify user is updating their own profile
+    if (req.user.id !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Update base User model
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { name, email },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Update role-specific model
+    const roleLower = String(user.role || '').toLowerCase();
+    let roleSpecificUser;
+    
+    if (roleLower === 'citizen') {
+      roleSpecificUser = await Citizen.findOneAndUpdate(
+        { userId },
+        { name, email, location },
+        { new: true, runValidators: true }
+      ).select('-password');
+    } else if (roleLower === 'moderator') {
+      roleSpecificUser = await Moderator.findOneAndUpdate(
+        { userId },
+        { name, email },
+        { new: true, runValidators: true }
+      ).select('-password').populate('department', 'name areas');
+    }
+
+    res.json({ 
+      message: 'Profile updated successfully',
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email,
+        role: user.role,
+        location: roleSpecificUser?.location 
+      }
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------- Update Password ----------------
+app.put('/api/users/:userId/password', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { currentPassword, newPassword } = req.body;
+    
+    // Verify user is updating their own password
+    if (req.user.id !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash and update new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    // Also update in role-specific model
+    const roleLower = String(user.role || '').toLowerCase();
+    
+    if (roleLower === 'citizen') {
+      await Citizen.findOneAndUpdate({ userId }, { password: hashedPassword });
+    } else if (roleLower === 'moderator') {
+      await Moderator.findOneAndUpdate({ userId }, { password: hashedPassword });
+    }
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Update password error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Mount routes and start server (after initial connection above)
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/track', trackRouter);
 app.use('/api/moderators', moderatorRouter);
+app.use('/api/notifications', notificationsRouter);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -14,9 +14,17 @@ export function filterByStatus(complaints, status) {
 export function searchComplaints(complaints, query) {
   if (!query) return complaints;
   const lowerQuery = query.toLowerCase();
-  return complaints.filter(
-    (item) =>
-      item.title.toLowerCase().includes(lowerQuery) ||
-      item.description.toLowerCase().includes(lowerQuery)
-  );
+  return complaints.filter((item) => {
+    const title = String(item.title || "").toLowerCase();
+    const description = String(item.description || "").toLowerCase();
+    const category = String(item.category || "").toLowerCase();
+    const departmentName = String(item.department?.name || item.department || "").toLowerCase();
+
+    return (
+      title.includes(lowerQuery) ||
+      description.includes(lowerQuery) ||
+      category.includes(lowerQuery) ||
+      departmentName.includes(lowerQuery)
+    );
+  });
 }

@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ModeratorSidebar from "../../components/ModeratorSidebar";
-import { FiUser, FiMail, FiTag, FiCalendar, FiFileText } from 'react-icons/fi';
+import { FiUser, FiMail, FiTag, FiCalendar, FiFileText, FiMapPin, FiPhone } from 'react-icons/fi';
 
 const ModeratorProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [departmentName, setDepartmentName] = useState("");
+  const [departmentInfo, setDepartmentInfo] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,20 +36,20 @@ const ModeratorProfile = () => {
         if (dept) {
           if (typeof dept === 'object' && dept.name) {
             // Already populated with department object
-            setDepartmentName(dept.name);
+            setDepartmentInfo(dept);
           } else if (typeof dept === 'string') {
             // Could be ID or name - try to fetch by ID first
             return axios.get(`http://localhost:3000/api/complaints/departments/${dept}`)
               .catch(() => {
                 // If fetch fails, assume it's already the name
-                setDepartmentName(dept);
+                setDepartmentInfo({ name: dept });
               });
           }
         }
       })
       .then((deptRes) => {
-        if (deptRes?.data?.name) {
-          setDepartmentName(deptRes.data.name);
+        if (deptRes?.data) {
+          setDepartmentInfo(deptRes.data);
         }
       })
       .catch((err) => {
@@ -241,10 +241,79 @@ const ModeratorProfile = () => {
                         </div>
                         <div>
                           <p className="mb-1 small text-muted">Department</p>
-                          <p className="mb-0 fw-semibold">{departmentName || "Not Assigned"}</p>
+                          <p className="mb-0 fw-semibold">{departmentInfo?.name || "Not Assigned"}</p>
+                          {departmentInfo?.subcategory && (
+                            <p className="mb-0 small text-muted">{departmentInfo.subcategory}</p>
+                          )}
                         </div>
                       </div>
                     </div>
+
+                    {departmentInfo?.coverageAreas && departmentInfo.coverageAreas.length > 0 && (
+                      <div className="col-md-6">
+                        <div className="d-flex align-items-start">
+                          <div
+                            className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              backgroundColor: "#FFF8F0",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <FiMapPin style={{ color: "#FFB347" }} />
+                          </div>
+                          <div>
+                            <p className="mb-1 small text-muted">Coverage Areas</p>
+                            <p className="mb-0 fw-semibold">{departmentInfo.coverageAreas.join(', ')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {departmentInfo?.moderatorAuthority && (
+                      <div className="col-md-6">
+                        <div className="d-flex align-items-start">
+                          <div
+                            className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              backgroundColor: "#FFF8F0",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <FiUser style={{ color: "#FFB347" }} />
+                          </div>
+                          <div>
+                            <p className="mb-1 small text-muted">Authority</p>
+                            <p className="mb-0 fw-semibold">{departmentInfo.moderatorAuthority}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {departmentInfo?.contactInfo && (
+                      <div className="col-md-6">
+                        <div className="d-flex align-items-start">
+                          <div
+                            className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              backgroundColor: "#FFF8F0",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <FiPhone style={{ color: "#FFB347" }} />
+                          </div>
+                          <div>
+                            <p className="mb-1 small text-muted">Contact</p>
+                            <p className="mb-0 fw-semibold">{departmentInfo.contactInfo}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {profile?.assignedArea && (
                       <div className="col-md-6">

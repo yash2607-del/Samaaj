@@ -233,7 +233,7 @@ export default function ModeratorComplaints() {
       <div className="flex-grow-1" style={{ overflow: "auto" }}>
         
         {/* Header Section */}
-        <section className="py-4 px-4 border-bottom shadow-sm" style={{ background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)" }}>
+        <section className="py-3 px-4 border-bottom shadow-sm" style={{ background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)" }}>
           <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-between">
             <div>
               <h3 className="mb-2 fw-bold" style={{ color: "#1a1a1a", fontSize: "1.75rem" }}>
@@ -247,7 +247,7 @@ export default function ModeratorComplaints() {
         </section>
 
         {/* Summary Stats Section */}
-        <section className="py-4 px-4" style={{ backgroundColor: "#FFFEF7" }}>
+        <section className="py-3 px-4" style={{ backgroundColor: "#FFFEF7" }}>
           <div className="row g-3">
             <div className="col-6 col-md-3">
               <div className="card border-0 shadow-sm h-100" style={{ borderTop: "4px solid #FFB347" }}>
@@ -304,14 +304,14 @@ export default function ModeratorComplaints() {
         </section>
 
         {/* Complaints List */}
-        <section className="py-4 px-4">
-          <div className="row g-4">
+        <section className="py-3 px-4">
+          <div className="row g-3">
             {complaints.map((complaint) => {
               const meta = statusMeta[complaint.status] || statusMeta.Pending;
               const StatusIcon = meta.icon;
 
               return (
-                <div key={complaint._id} className="col-12 col-lg-6">
+                <div key={complaint._id} className="col-12 col-md-6 col-lg-4">
                   <div 
                     className="card border-0 shadow-sm h-100"
                     style={{ 
@@ -495,7 +495,7 @@ export default function ModeratorComplaints() {
                       {complaint.assignedTo && (
                         <div className="mt-3 pt-3 border-top">
                           <small className="text-muted">
-                            Assigned to: <strong>{complaint.assignedTo}</strong>
+                            Assigned to: <strong>{complaint.assignedTo.name || complaint.assignedTo.email || 'Moderator'}</strong>
                           </small>
                         </div>
                       )}

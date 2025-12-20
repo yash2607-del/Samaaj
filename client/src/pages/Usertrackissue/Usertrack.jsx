@@ -13,7 +13,8 @@ import {
   FiCalendar,
   FiEye,
   FiXCircle,
-  FiPlusCircle
+  FiPlusCircle,
+  FiX
 } from "react-icons/fi";
 const statusMeta = {
   Pending: {
@@ -58,6 +59,7 @@ export default function Usertrack() {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedIssue, setSelectedIssue] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -183,11 +185,11 @@ export default function Usertrack() {
         <section className="py-4 px-4 border-bottom shadow-sm" style={{ background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)" }}>
           <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-between">
             <div>
-              <h3 className="mb-2 fw-bold" style={{ color: "#1a1a1a", fontSize: "1.75rem" }}>
-                Track Your Issues
+              <h3 className="mb-2 fw-bold" style={{ color: "#1a1a1a", fontSize: "2rem" }}>
+                Track Your Complaints
               </h3>
-              <p className="mb-0" style={{ color: "#424242", fontSize: "0.95rem" }}>
-                Monitor the progress of every complaint you've submitted to the civic authorities
+              <p className="mb-0" style={{ color: "#424242", fontSize: "1rem", lineHeight: "1.5" }}>
+                Stay updated on the status and progress of all your civic issue submissions in real-time
               </p>
             </div>
           </div>
@@ -242,11 +244,13 @@ export default function Usertrack() {
         {/* Complaints Grid Section */}
         <section className="py-4 px-4" style={{ backgroundColor: "#FFFEF7" }}>
           <div className="mb-4">
-            <h5 className="fw-semibold d-flex align-items-center gap-2 mb-1" style={{ color: "#1a1a1a" }}>
-              <FiClock style={{ color: "#FFB347" }} />
-              All Your Complaints ({issues.length})
+            <h5 className="fw-semibold d-flex align-items-center gap-2 mb-2" style={{ color: "#1a1a1a", fontSize: "1.3rem" }}>
+              <FiClock style={{ color: "#FFB347", fontSize: "1.2rem" }} />
+              Your Submitted Complaints
             </h5>
-            <p className="text-muted mb-0 small">Click on any card to view complete details and current status</p>
+            <p className="text-muted mb-0" style={{ fontSize: "0.95rem" }}>
+              You have <span className="fw-semibold" style={{ color: "#FFB347" }}>{issues.length}</span> {issues.length === 1 ? 'complaint' : 'complaints'} on record. Click any card to view full details and track resolution progress.
+            </p>
           </div>
 
           <div className="row g-4">
@@ -326,33 +330,13 @@ export default function Usertrack() {
                         {issue.title || "Untitled Complaint"}
                       </h5>
 
-                      <p className="card-text text-muted mb-3" style={{ fontSize: "0.9rem", lineHeight: "1.6" }}>
-                        {issue.description
-                          ? issue.description.length > 120
-                            ? `${issue.description.slice(0, 120)}...`
-                            : issue.description
-                          : "No description provided."}
-                      </p>
-
                       {/* Meta Information */}
-                      <div className="border-top pt-3">
+                      <div className="pt-2">
                         <div className="row g-2 mb-3">
                           <div className="col-12">
                             <div className="d-flex align-items-center gap-2 text-muted small">
                               <FiTag style={{ color: "#FFB347", fontSize: "1rem" }} />
                               <span className="fw-semibold">{issue.category || "Uncategorized"}</span>
-                            </div>
-                          </div>
-                          <div className="col-12">
-                            <div className="d-flex align-items-center gap-2 text-muted small">
-                              <FiMapPin style={{ color: "#FFB347", fontSize: "1rem" }} />
-                              <span style={{ 
-                                overflow: "hidden", 
-                                textOverflow: "ellipsis", 
-                                whiteSpace: "nowrap" 
-                              }}>
-                                {issue.location || "Location not specified"}
-                              </span>
                             </div>
                           </div>
                           <div className="col-12">
@@ -372,10 +356,10 @@ export default function Usertrack() {
                             border: "none",
                             padding: "0.6rem"
                           }}
-                          onClick={() => alert(`View details for: ${issue.title}`)}
+                          onClick={() => setSelectedIssue(issue)}
                         >
                           <FiEye />
-                          View Full Details
+                          View Details
                         </button>
                       </div>
                     </div>
@@ -385,6 +369,122 @@ export default function Usertrack() {
             })}
           </div>
         </section>
+
+        {/* Details Modal */}
+        {selectedIssue && (
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
+            onClick={() => setSelectedIssue(null)}
+          >
+            <div className="d-flex align-items-center justify-content-center w-100 h-100 p-3">
+              <div
+                className="card shadow-lg"
+                style={{ maxWidth: "700px", width: "100%", borderRadius: "16px", maxHeight: "90vh", overflow: "auto" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="card-body p-4">
+                  {/* Modal Header */}
+                  <div className="d-flex justify-content-between align-items-start mb-4">
+                    <div className="flex-grow-1">
+                      <h4 className="fw-bold mb-2" style={{ color: "#1a1a1a" }}>
+                        {selectedIssue.title || "Untitled Complaint"}
+                      </h4>
+                      <span className={`badge ${statusMeta[selectedIssue.status]?.badgeClass || statusMeta.Pending.badgeClass} px-3 py-2`}>
+                        {selectedIssue.status || "Pending"}
+                      </span>
+                    </div>
+                    <button
+                      className="btn btn-light border-0"
+                      style={{ borderRadius: "50%", width: "40px", height: "40px", padding: 0 }}
+                      onClick={() => setSelectedIssue(null)}
+                    >
+                      <FiX style={{ fontSize: "1.3rem" }} />
+                    </button>
+                  </div>
+
+                  {/* Image */}
+                  {normalizePhotoUrl(selectedIssue.photo) && (
+                    <div className="mb-4">
+                      <img
+                        src={normalizePhotoUrl(selectedIssue.photo)}
+                        alt={selectedIssue.title}
+                        className="img-fluid rounded-3"
+                        style={{ width: "100%", maxHeight: "350px", objectFit: "cover" }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  <div className="mb-4">
+                    <h6 className="fw-semibold mb-2" style={{ color: "#424242" }}>Description</h6>
+                    <p className="text-muted" style={{ lineHeight: "1.7" }}>
+                      {selectedIssue.description || "No description provided."}
+                    </p>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="mb-4">
+                    <h6 className="fw-semibold mb-3" style={{ color: "#424242" }}>Complaint Details</h6>
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <div className="d-flex align-items-start gap-2">
+                          <FiTag className="mt-1" style={{ color: "#FFB347", fontSize: "1.1rem" }} />
+                          <div>
+                            <div className="small text-muted">Category</div>
+                            <div className="fw-semibold">{selectedIssue.category || "Uncategorized"}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-6">
+                        <div className="d-flex align-items-start gap-2">
+                          <FiCalendar className="mt-1" style={{ color: "#FFB347", fontSize: "1.1rem" }} />
+                          <div>
+                            <div className="small text-muted">Submitted On</div>
+                            <div className="fw-semibold">{formatDate(selectedIssue.createdAt)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-12">
+                        <div className="d-flex align-items-start gap-2">
+                          <FiMapPin className="mt-1" style={{ color: "#FFB347", fontSize: "1.1rem" }} />
+                          <div>
+                            <div className="small text-muted">Location</div>
+                            <div className="fw-semibold">{selectedIssue.location || "Not specified"}</div>
+                            {selectedIssue.district && (
+                              <div className="small text-muted">District: {selectedIssue.district}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {selectedIssue.department?.name && (
+                        <div className="col-md-6">
+                          <div className="d-flex align-items-start gap-2">
+                            <FiTag className="mt-1" style={{ color: "#FFB347", fontSize: "1.1rem" }} />
+                            <div>
+                              <div className="small text-muted">Department</div>
+                              <div className="fw-semibold">{selectedIssue.department.name}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="d-flex gap-2">
+                    <button
+                      className="btn btn-outline-secondary flex-grow-1"
+                      onClick={() => setSelectedIssue(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

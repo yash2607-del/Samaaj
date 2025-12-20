@@ -12,8 +12,10 @@ function ModeratorSidebar() {
     { path: "/moderator-complaints", label: "Complaints", icon: FiClipboard },
   ];
 
-  const supportItems = [
+  const accountItems = [
     { path: "/moderator-profile", label: "My Profile", icon: FiUser },
+    { path: "/settings", label: "Settings", icon: FiSettings },
+    { path: "/logout", label: "Sign Out", icon: FiLogOut },
   ];
 
   const handleLogout = () => {
@@ -49,12 +51,12 @@ function ModeratorSidebar() {
           </button>
         ))}
 
-        <div className="sidebar-section-title">SUPPORT</div>
-        {supportItems.map((item) => (
+        <div className="sidebar-section-title">ACCOUNT</div>
+        {accountItems.map((item) => (
           <button
             key={item.path}
             className={`nav-item ${location.pathname === item.path ? "active" : ""}`}
-            onClick={() => navigate(item.path)}
+            onClick={() => item.path === "/logout" ? handleLogout() : navigate(item.path)}
           >
             <span className="nav-icon"><item.icon /></span>
             <span className="nav-label">{item.label}</span>
@@ -63,21 +65,6 @@ function ModeratorSidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="user-profile-section">
-          <div className="user-avatar">{userName.charAt(0).toUpperCase()}</div>
-          <div className="user-info">
-            <div className="user-name">{userName}</div>
-            <div className="user-email">{userEmail}</div>
-          </div>
-        </div>
-        <button className="sidebar-settings">
-          <span className="nav-icon"><FiSettings /></span>
-          <span>Settings</span>
-        </button>
-        <button className="logout-btn" onClick={handleLogout}>
-          <span className="nav-icon"><FiLogOut /></span>
-          <span>Sign Out</span>
-        </button>
       </div>
     </aside>
   );

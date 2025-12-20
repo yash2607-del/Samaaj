@@ -26,6 +26,15 @@ const complaintSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     department: { type: Schema.Types.ObjectId, ref: "Department", required: true },
     assignedTo: { type: Schema.Types.ObjectId, ref: "Moderator", default: null },
+    communityValidations: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        note: { type: String, default: "" },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
+    likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    dislikes: [{ type: Schema.Types.ObjectId, ref: "User" }],
     history: [
       {
         status: { type: String },

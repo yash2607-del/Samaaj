@@ -4,14 +4,30 @@ const departmentSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true,
         trim: true
     },
-    // List of areas this department is responsible for
-    areas: [{
+    category: {
+        type: String,
+        required: true,
+        enum: ['Electricity', 'Sanitation', 'Road', 'Public Works', 'Water', 'Public Safety'],
+        trim: true
+    },
+    subcategory: {
+        type: String,
+        trim: true
+    },
+    coverageAreas: [{
         type: String,
         trim: true
     }],
+    moderatorAuthority: {
+        type: String,
+        trim: true
+    },
+    contactInfo: {
+        type: String,
+        trim: true
+    },
     isActive: {
         type: Boolean,
         default: true

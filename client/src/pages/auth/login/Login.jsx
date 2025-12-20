@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { FiMail, FiLock, FiArrowLeft } from 'react-icons/fi';
+import { FiMail, FiLock, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -92,14 +93,21 @@ function Login() {
                         <FiLock style={{ color: '#616161' }} />
                       </span>
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         className="form-control"
                         placeholder="Enter your password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
-                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', padding: '0.75rem' }}
+                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRight: 'none', padding: '0.75rem' }}
                       />
+                      <span 
+                        className="input-group-text bg-white" 
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', cursor: 'pointer' }}
+                      >
+                        {showPassword ? <FiEyeOff style={{ color: '#616161' }} /> : <FiEye style={{ color: '#616161' }} />}
+                      </span>
                     </div>
                   </div>
 

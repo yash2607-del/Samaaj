@@ -7,6 +7,7 @@ import Complaint from "../models/complaint.js";
 import Moderator from "../models/Moderator.js";
 import Department from "../models/Department.js";
 import { Citizen, Moderator as ModeratorUser } from "../models/User.js";
+import Notification from "../Models/Notification.js";
 import auth from "../middleware/auth.js";
 
 const router = express.Router();
@@ -40,6 +41,20 @@ router.get("/departments", async (req, res) => {
     res.json(departments);
   } catch (error) {
     console.error("Error fetching departments:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get single department by ID
+router.get("/departments/:id", async (req, res) => {
+  try {
+    const department = await Department.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({ message: "Department not found" });
+    }
+    res.json(department);
+  } catch (error) {
+    console.error("Error fetching department:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -286,6 +301,7 @@ router.patch("/update-status/:complaintId", upload.single('actionPhoto'), async 
     }
 
     // Update complaint status and append history
+    const oldStatus = complaint.status;
     complaint.status = status;
     complaint.history = complaint.history || [];
     complaint.history.push({
@@ -298,6 +314,34 @@ router.patch("/update-status/:complaintId", upload.single('actionPhoto'), async 
     });
 
     await complaint.save();
+
+    // Create notification for complaint owner about status change
+    if (complaint.userId && oldStatus !== status) {
+      try {
+        const statusMessages = {
+          'pending': 'Your complaint is pending review',
+          'assigned': 'Your complaint has been assigned to a moderator',
+          'in-progress': 'Work has started on your complaint',
+          'resolved': 'Your complaint has been resolved',
+          'rejected': 'Your complaint has been rejected'
+        };
+        
+        await Notification.create({
+          userId: complaint.userId,
+          type: 'status_change',
+          title: 'Issue Status Updated',
+          message: statusMessages[status] || `Your complaint status changed to ${status}`,
+          complaintId: complaint._id,
+          metadata: {
+            oldStatus: oldStatus,
+            newStatus: status,
+            moderatorEmail: moderator.email
+          }
+        });
+      } catch (notifErr) {
+        console.error('Error creating notification:', notifErr);
+      }
+    }
 
     // populate assignedTo and department for response
     const populated = await Complaint.findById(complaint._id).populate('assignedTo', 'name email').populate('department', 'name');
@@ -420,6 +464,222 @@ router.post("/", auth, upload.single('photo'), async (req, res) => {
   } catch (error) {
     console.error("Error creating complaint:", error);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Citizens can support a complaint with an optional note
+router.post('/:complaintId/community-validate', auth, async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const { id: userId } = req.user || {};
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    if (!mongoose.Types.ObjectId.isValid(String(complaintId))) {
+      return res.status(400).json({ message: 'Invalid complaint id' });
+    }
+
+    const noteRaw = typeof req.body?.note === 'string' ? req.body.note : '';
+    const trimmedNote = noteRaw.trim().slice(0, 500);
+
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    const validations = complaint.communityValidations || [];
+    const existingIndex = validations.findIndex((entry) =>
+      entry?.userId && entry.userId.toString() === String(userId)
+    );
+
+    if (existingIndex >= 0) {
+      validations[existingIndex].note = trimmedNote;
+      validations[existingIndex].createdAt = new Date();
+    } else {
+      validations.push({
+        userId: new mongoose.Types.ObjectId(String(userId)),
+        note: trimmedNote,
+        createdAt: new Date()
+      });
+      
+      // Create notification for complaint owner (only on new validation, not update)
+      if (complaint.userId && complaint.userId.toString() !== String(userId)) {
+        try {
+          const validator = await Citizen.findOne({ userId }).select('name');
+          const validatorName = validator?.name || 'Someone';
+          
+          await Notification.create({
+            userId: complaint.userId,
+            type: 'community_validation',
+            title: 'New Support for Your Issue',
+            message: `${validatorName} supported your complaint "${complaint.title}"`,
+            complaintId: complaint._id,
+            metadata: {
+              validatorName: validatorName
+            }
+          });
+        } catch (notifErr) {
+          console.error('Error creating notification:', notifErr);
+        }
+      }
+    }
+
+    complaint.communityValidations = validations;
+    await complaint.save();
+
+    const refreshed = await Complaint.findById(complaintId)
+      .populate('department', 'name')
+      .lean();
+
+    res.json({
+      message: existingIndex >= 0 ? 'Support updated' : 'Support added',
+      data: refreshed
+    });
+  } catch (err) {
+    console.error('Error recording community validation:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Allow citizens to withdraw their support
+router.delete('/:complaintId/community-validate', auth, async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const { id: userId } = req.user || {};
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    if (!mongoose.Types.ObjectId.isValid(String(complaintId))) {
+      return res.status(400).json({ message: 'Invalid complaint id' });
+    }
+
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    const before = complaint.communityValidations?.length || 0;
+    complaint.communityValidations = (complaint.communityValidations || []).filter(
+      (entry) => entry?.userId && entry.userId.toString() !== String(userId)
+    );
+
+    if ((complaint.communityValidations?.length || 0) !== before) {
+      await complaint.save();
+    }
+
+    const refreshed = await Complaint.findById(complaintId)
+      .populate('department', 'name')
+      .lean();
+
+    res.json({ message: 'Support removed', data: refreshed });
+  } catch (err) {
+    console.error('Error removing community validation:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Like a complaint
+router.post('/:complaintId/like', async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const userId = req.session?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    // Initialize arrays if they don't exist
+    if (!complaint.likes) complaint.likes = [];
+    if (!complaint.dislikes) complaint.dislikes = [];
+
+    // Remove from dislikes if exists
+    complaint.dislikes = complaint.dislikes.filter(id => id.toString() !== userId.toString());
+
+    // Toggle like
+    const likeIndex = complaint.likes.findIndex(id => id.toString() === userId.toString());
+    if (likeIndex >= 0) {
+      complaint.likes.splice(likeIndex, 1);
+    } else {
+      complaint.likes.push(userId);
+      
+      // Create notification for complaint owner
+      if (complaint.userId && complaint.userId.toString() !== userId.toString()) {
+        try {
+          const liker = await Citizen.findOne({ userId }).select('name');
+          const likerName = liker?.name || 'Someone';
+          
+          await Notification.create({
+            userId: complaint.userId,
+            type: 'community_validation',
+            title: 'Someone Liked Your Issue',
+            message: `${likerName} liked your complaint "${complaint.title}"`,
+            complaintId: complaint._id,
+            metadata: { likerName }
+          });
+        } catch (notifErr) {
+          console.error('Error creating notification:', notifErr);
+        }
+      }
+    }
+
+    await complaint.save();
+
+    const refreshed = await Complaint.findById(complaintId)
+      .populate('department', 'name')
+      .lean();
+
+    res.json({ 
+      message: likeIndex >= 0 ? 'Like removed' : 'Liked successfully', 
+      data: refreshed 
+    });
+  } catch (err) {
+    console.error('Error liking complaint:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Dislike a complaint
+router.post('/:complaintId/dislike', async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const userId = req.session?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    // Initialize arrays if they don't exist
+    if (!complaint.likes) complaint.likes = [];
+    if (!complaint.dislikes) complaint.dislikes = [];
+
+    // Remove from likes if exists
+    complaint.likes = complaint.likes.filter(id => id.toString() !== userId.toString());
+
+    // Toggle dislike
+    const dislikeIndex = complaint.dislikes.findIndex(id => id.toString() === userId.toString());
+    if (dislikeIndex >= 0) {
+      complaint.dislikes.splice(dislikeIndex, 1);
+    } else {
+      complaint.dislikes.push(userId);
+    }
+
+    await complaint.save();
+
+    const refreshed = await Complaint.findById(complaintId)
+      .populate('department', 'name')
+      .lean();
+
+    res.json({ 
+      message: dislikeIndex >= 0 ? 'Dislike removed' : 'Disliked successfully', 
+      data: refreshed 
+    });
+  } catch (err) {
+    console.error('Error disliking complaint:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
