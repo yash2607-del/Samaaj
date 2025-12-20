@@ -21,8 +21,7 @@ const citizenSchema = new Schema({
   email: { type: String, required: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['Citizen'], required: true },
-  location: { type: String, required: true },
-  issueCategory: { type: String }
+  location: { type: String, required: true }
 }, {
   timestamps: true,
   versionKey: false

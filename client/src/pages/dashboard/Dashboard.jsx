@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { filterByCategory, filterByStatus, searchComplaints } from "../../utils/filters";
 import CitizenSidebar from "../../components/CitizenSidebar";
+import NotificationPanel from "../../components/NotificationPanel";
 import API from "../../api.js";
 import { 
-  FiClipboard, FiCheckCircle, FiClock, 
+  FiCheckCircle, FiClock, 
   FiSearch, FiFilter, FiAlertCircle, 
-  FiEye, FiInbox, FiTrendingUp, FiBell
+  FiInbox, FiTrendingUp, FiBell, FiUser,
+  FiSettings, FiGrid, FiLogOut
 } from 'react-icons/fi';
 
 const categories = [
@@ -29,6 +31,12 @@ const Dashboard = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [status, setStatus] = useState("All");
+  const [page, setPage] = useState(1);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const PAGE_SIZE = 5;
 
   const { totalComplaints, resolvedCount, inProgressCount } = useMemo(() => {
     const total = complaints.length;
@@ -59,12 +67,54 @@ const Dashboard = () => {
     fetchComplaints();
   }, []);
 
+  // Fetch notification count
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/notifications', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotificationCount();
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotificationCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const filteredComplaints = useMemo(() => {
     let list = filterByCategory(complaints, category);
     list = filterByStatus(list, status);
     list = searchComplaints(list, search);
     return list;
   }, [complaints, category, status, search]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredComplaints.length / PAGE_SIZE)),
+    [filteredComplaints.length]
+  );
+
+  const paginatedComplaints = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredComplaints.slice(start, start + PAGE_SIZE);
+  }, [filteredComplaints, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, category, status, complaints.length]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const formatDate = (value) => {
     if (!value) return "Date unavailable";
@@ -99,49 +149,76 @@ const Dashboard = () => {
 
         {/* Top Navigation Bar */}
         <section className="py-3 px-4 bg-white border-bottom" style={{ position: "sticky", top: 0, zIndex: 100 }}>
-          <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center gap-3 flex-grow-1" style={{ maxWidth: "450px" }}>
-              <div className="input-group">
-                <span className="input-group-text bg-white border-end-0" style={{ borderColor: "#e0e0e0", borderRadius: "8px 0 0 8px" }}>
-                  <FiSearch style={{ color: "#9e9e9e", fontSize: "1.1rem" }} />
+          <div className="d-flex align-items-center justify-content-end gap-3">
+            <button 
+              className="btn btn-light border-0 position-relative"
+              style={{ borderRadius: "50%", width: "42px", height: "42px", padding: 0 }}
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <FiBell style={{ fontSize: "1.2rem", color: "#616161" }} />
+              {unreadCount > 0 && (
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: "0.65rem" }}>
+                  {unreadCount}
                 </span>
-                <input
-                  type="text"
-                  className="form-control border-start-0 shadow-none"
-                  placeholder="Search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{ borderColor: "#e0e0e0", borderRadius: "0 8px 8px 0", fontSize: "0.9rem" }}
-                />
-              </div>
-            </div>
-            <div className="d-flex align-items-center gap-2">
+              )}
+            </button>
+            <div className="position-relative">
               <button 
-                className="btn btn-sm d-flex align-items-center gap-2 px-3 py-2"
-                style={{ 
-                  border: "1px solid #e0e0e0", 
-                  borderRadius: "8px", 
-                  backgroundColor: "white",
-                  fontSize: "0.85rem",
-                  fontWeight: "500",
-                  color: "#616161"
-                }}
+                className="btn btn-light border-0 d-flex align-items-center gap-2"
+                style={{ borderRadius: "10px", padding: "0.5rem 0.75rem" }}
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
               >
-                Last 30 days <span style={{ marginLeft: "0.25rem" }}>▼</span>
+                <div 
+                  className="rounded-circle d-flex align-items-center justify-content-center bg-warning"
+                  style={{ width: "32px", height: "32px" }}
+                >
+                  <FiUser style={{ color: "white", fontSize: "1rem" }} />
+                </div>
+                <span className="fw-semibold" style={{ fontSize: "0.9rem", color: "#424242" }}>
+                  {localStorage.getItem("userName") || "User"}
+                </span>
               </button>
-              <button 
-                className="btn btn-sm px-3 py-2"
-                style={{ 
-                  border: "1px solid #e0e0e0", 
-                  borderRadius: "8px", 
-                  backgroundColor: "white",
-                  fontSize: "0.85rem",
-                  fontWeight: "500",
-                  color: "#616161"
-                }}
-              >
-                Export
-              </button>
+              {showUserDropdown && (
+                <div 
+                  className="position-absolute end-0 mt-2 bg-white shadow-lg rounded-3"
+                  style={{ width: "200px", zIndex: 1000, border: "1px solid #e0e0e0" }}
+                >
+                  <div className="py-2">
+                    <button
+                      className="btn btn-light w-100 text-start d-flex align-items-center gap-2 border-0"
+                      style={{ fontSize: "0.9rem", padding: "0.6rem 1rem" }}
+                      onClick={() => { navigate('/user-profile'); setShowUserDropdown(false); }}
+                    >
+                      <FiUser /> My Profile
+                    </button>
+                    <button
+                      className="btn btn-light w-100 text-start d-flex align-items-center gap-2 border-0"
+                      style={{ fontSize: "0.9rem", padding: "0.6rem 1rem" }}
+                      onClick={() => { navigate('/settings'); setShowUserDropdown(false); }}
+                    >
+                      <FiSettings /> Settings
+                    </button>
+                    <button
+                      className="btn btn-light w-100 text-start d-flex align-items-center gap-2 border-0"
+                      style={{ fontSize: "0.9rem", padding: "0.6rem 1rem" }}
+                      onClick={() => { navigate('/track-issue'); setShowUserDropdown(false); }}
+                    >
+                      <FiGrid /> Track Issue
+                    </button>
+                    <hr className="my-2" />
+                    <button
+                      className="btn btn-light w-100 text-start d-flex align-items-center gap-2 border-0 text-danger"
+                      style={{ fontSize: "0.9rem", padding: "0.6rem 1rem" }}
+                      onClick={() => {
+                        localStorage.clear();
+                        navigate('/login');
+                      }}
+                    >
+                      <FiLogOut /> Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -167,28 +244,7 @@ const Dashboard = () => {
                     <span className="opacity-75">resolution rate</span>
                   </p>
                 </div>
-                <div className="d-flex gap-2">
-                  <button 
-                    className="btn text-white border-0 px-3 py-2 fw-semibold d-flex align-items-center gap-2"
-                    style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: "10px", fontSize: "0.9rem" }}
-                    onClick={() => navigate('/complaint')}
-                  >
-                    + Add
-                  </button>
-                  <button 
-                    className="btn text-white border-0 px-3 py-2 fw-semibold"
-                    style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: "10px", fontSize: "0.9rem" }}
-                    onClick={() => navigate('/track-issue')}
-                  >
-                    Track
-                  </button>
-                  <button 
-                    className="btn text-white border-0 px-3 py-2 fw-semibold"
-                    style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: "10px", fontSize: "0.9rem" }}
-                  >
-                    ⋯
-                  </button>
-                </div>
+               
               </div>
             </div>
             <div style={{ 
@@ -268,33 +324,54 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Filters Section */}
+        {/* Search and Filters Section */}
         <section className="px-4 pb-3">
-          <div className="d-flex gap-2 align-items-center">
-            <select
-              className="form-select shadow-sm border-0"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              style={{ maxWidth: "200px", borderRadius: "10px", fontSize: "0.9rem" }}
-            >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-            <select
-              className="form-select shadow-sm border-0"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              style={{ maxWidth: "200px", borderRadius: "10px", fontSize: "0.9rem" }}
-            >
-              {statuses.map((stat) => (
-                <option key={stat} value={stat}>
-                  {stat}
-                </option>
-              ))}
-            </select>
+          <div className="d-flex gap-3 align-items-center flex-wrap">
+            <div className="input-group" style={{ maxWidth: "350px" }}>
+              <span className="input-group-text bg-white border-end-0" style={{ borderColor: "#e0e0e0", borderRadius: "10px 0 0 10px" }}>
+                <FiSearch style={{ color: "#9e9e9e", fontSize: "1.1rem" }} />
+              </span>
+              <input
+                type="text"
+                className="form-control border-start-0 shadow-none"
+                placeholder="Search complaints..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ borderColor: "#e0e0e0", borderRadius: "0 10px 10px 0", fontSize: "0.9rem" }}
+              />
+            </div>
+            <div className="d-flex gap-2 align-items-center">
+              <div className="d-flex align-items-center gap-2">
+                <label className="text-muted fw-semibold mb-0" style={{ fontSize: "0.85rem" }}>Category:</label>
+                <select
+                  className="form-select shadow-sm border-0"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  style={{ width: "160px", borderRadius: "10px", fontSize: "0.9rem", fontWeight: "500" }}
+                >
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <label className="text-muted fw-semibold mb-0" style={{ fontSize: "0.85rem" }}>Status:</label>
+                <select
+                  className="form-select shadow-sm border-0"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  style={{ width: "150px", borderRadius: "10px", fontSize: "0.9rem", fontWeight: "500" }}
+                >
+                  {statuses.map((stat) => (
+                    <option key={stat} value={stat}>
+                      {stat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -303,15 +380,10 @@ const Dashboard = () => {
           <div className="card border-0 shadow-sm" style={{ borderRadius: "15px" }}>
             <div className="card-body p-4">
               <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="mb-0 fw-semibold">Recent Activity</h5>
-                <div className="d-flex gap-2">
-                  <button className="btn btn-sm btn-link text-muted text-decoration-none">
-                    <FiFilter className="me-1" /> Filter
-                  </button>
-                  <button className="btn btn-sm btn-link text-decoration-none" style={{ color: "#FFB347" }}>
-                    See All
-                  </button>
-                </div>
+                <h5 className="mb-0 fw-semibold" style={{ color: "#1a1a1a" }}>Recent Activity</h5>
+                <span className="text-muted small">
+                  {filteredComplaints.length} {filteredComplaints.length === 1 ? 'complaint' : 'complaints'}
+                </span>
               </div>
               {error && (
                 <div className="alert alert-danger border-0 mb-3" role="alert">
@@ -336,69 +408,98 @@ const Dashboard = () => {
                   </p>
                 </div>
               ) : (
-                filteredComplaints.map((complaint, index) => {
-                  const statusConfig = statusStyles[complaint.status] || statusStyles.Pending;
-                  const StatusIcon = statusConfig.icon;
-                  
-                  return (
-                    <div 
-                      key={complaint._id} 
-                      className="d-flex justify-content-between align-items-center py-3"
-                      style={{ 
-                        borderBottom: index < filteredComplaints.length - 1 ? "1px solid #f0f0f0" : "none",
-                        cursor: "pointer",
-                        transition: "background 0.2s"
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#fafafa"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                    >
-                      <div className="d-flex align-items-center gap-3 flex-grow-1">
-                        <div 
-                          className="rounded-circle d-flex align-items-center justify-content-center"
-                          style={{ 
-                            width: "45px", 
-                            height: "45px", 
-                            backgroundColor: "#FFF8F0",
-                            flexShrink: 0
-                          }}
-                        >
-                          <StatusIcon style={{ fontSize: "1.2rem", color: "#FFB347" }} />
+                <>
+                  {paginatedComplaints.map((complaint, index) => {
+                    const statusConfig = statusStyles[complaint.status] || statusStyles.Pending;
+                    const StatusIcon = statusConfig.icon;
+
+                    return (
+                      <div 
+                        key={complaint._id} 
+                        className="d-flex justify-content-between align-items-center py-3"
+                        style={{ 
+                          borderBottom: index < paginatedComplaints.length - 1 ? "1px solid #f0f0f0" : "none",
+                          cursor: "pointer",
+                          transition: "background 0.2s"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "#fafafa"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <div className="d-flex align-items-center gap-3 flex-grow-1">
+                          <div 
+                            className="rounded-circle d-flex align-items-center justify-content-center"
+                            style={{ 
+                              width: "45px", 
+                              height: "45px", 
+                              backgroundColor: "#FFF8F0",
+                              flexShrink: 0
+                            }}
+                          >
+                            <StatusIcon style={{ fontSize: "1.2rem", color: "#FFB347" }} />
+                          </div>
+                          <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                            <div className="fw-semibold text-truncate mb-1" style={{ fontSize: "0.95rem" }}>
+                              {complaint.title}
+                            </div>
+                            <div className="d-flex gap-2 align-items-center">
+                              <span className="text-muted small">{complaint.category}</span>
+                              <span style={{ color: "#e0e0e0" }}>•</span>
+                              <span className="text-muted small">{formatDate(complaint.createdAt)}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                          <div className="fw-semibold text-truncate mb-1" style={{ fontSize: "0.95rem" }}>
-                            {complaint.title}
-                          </div>
-                          <div className="d-flex gap-2 align-items-center">
-                            <span className="text-muted small">{complaint.category}</span>
-                            <span style={{ color: "#e0e0e0" }}>•</span>
-                            <span className="text-muted small">{formatDate(complaint.createdAt)}</span>
-                          </div>
+                        <div className="d-flex align-items-center gap-3">
+                          <span 
+                            className="badge px-3 py-2"
+                            style={{ 
+                              backgroundColor: statusConfig.style.backgroundColor,
+                              color: statusConfig.style.color,
+                              border: statusConfig.style.border,
+                              borderRadius: "8px",
+                              fontSize: "0.75rem",
+                              fontWeight: "500"
+                            }}
+                          >
+                            {complaint.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="d-flex align-items-center gap-3">
-                        <span 
-                          className="badge px-3 py-2"
-                          style={{ 
-                            backgroundColor: statusConfig.style.backgroundColor,
-                            color: statusConfig.style.color,
-                            border: statusConfig.style.border,
-                            borderRadius: "8px",
-                            fontSize: "0.75rem",
-                            fontWeight: "500"
-                          }}
-                        >
-                          {complaint.status}
-                        </span>
-                        <FiEye className="text-muted" style={{ fontSize: "1.1rem" }} />
-                      </div>
+                    );
+                  })}
+                  {filteredComplaints.length > PAGE_SIZE && (
+                    <div className="d-flex justify-content-between align-items-center pt-3">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                        disabled={page === 1}
+                      >
+                        Previous
+                      </button>
+                      <span className="text-muted small">
+                        Page {page} of {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                        disabled={page === totalPages}
+                      >
+                        Next
+                      </button>
                     </div>
-                  );
-                })
+                  )}
+                </>
               )}
             </div>
           </div>
         </section>
       </div>
+      
+      <NotificationPanel 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+      />
     </div>
   );
 };

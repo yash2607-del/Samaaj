@@ -10,6 +10,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import NearbyComplaints from "./pages/NearbyComplaints/NearbyComplaints";
 import Usertrack from "./pages/Usertrackissue/Usertrack";
 import UserProfile from "./pages/UserProfile/UserProfile";
+import Settings from "./pages/Settings/Settings";
 import ModeratorDashboard from "./pages/ModeratorDashboard/ModeratorDashboard"
 import ModeratorProfile from "./pages/ModeratorProfile/ModeratorProfile"
 import ModeratorComplaints from "./pages/ModeratorComplaints/ModeratorComplaints"
@@ -40,6 +41,7 @@ function App() {
       <Route path="/nearby-complaints" element={<NearbyComplaints />} />
       <Route path="/track-issue" element={<Usertrack />}/>
       <Route path="/user-profile" element={<UserProfile />}/>
+      <Route path="/settings" element={<Settings />}/>
       <Route path="/profile" element={<Navigate to="/user-profile" replace />}/>
       <Route path="/moderator-dashboard" element={<ModeratorDashboard />} />
       <Route path="/moderator-profile" element={<ModeratorProfile />} />

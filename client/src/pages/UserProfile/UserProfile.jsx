@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiUser, FiMail, FiMapPin, FiTag, FiCalendar, FiFileText, FiArrowLeft } from "react-icons/fi";
+import { FiUser, FiMail, FiMapPin, FiCalendar, FiFileText, FiArrowLeft } from "react-icons/fi";
 import CitizenSidebar from "../../components/CitizenSidebar";
 
 const UserProfile = () => {
@@ -194,30 +194,8 @@ const UserProfile = () => {
                           <FiMapPin style={{ color: "#FFB347" }} />
                         </div>
                         <div>
-                          <p className="mb-1 small text-muted">District (Delhi)</p>
+                          <p className="mb-1 small text-muted">District</p>
                           <p className="mb-0 fw-semibold">{profile?.location || "Not Set"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="col-md-6">
-                      <div className="d-flex align-items-start">
-                        <div
-                          className="rounded-circle d-flex align-items-center justify-content-center me-3"
-                          style={{
-                            width: "40px",
-                            height: "40px",
-                            backgroundColor: "#FFF8F0",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <FiTag style={{ color: "#FFB347" }} />
-                        </div>
-                        <div>
-                          <p className="mb-1 small text-muted">Primary Interest</p>
-                          <p className="mb-0 fw-semibold">
-                            {profile?.issueCategory || "Not Specified"}
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -264,14 +242,7 @@ const UserProfile = () => {
                       </div>
                     </div>
 
-                    <div className="col-12 mt-4">
-                      <div className="alert mb-0" style={{ backgroundColor: "#FFF8F0", border: "1px solid #FFB347" }}>
-                        <p className="mb-0 small" style={{ color: "#424242" }}>
-                          <strong>Note:</strong> This profile displays complaints from your district ({profile?.location || "your area"}). 
-                          To update your information, please contact support.
-                        </p>
-                      </div>
-                    </div>
+                  
                   </div>
                 </div>
               </div>
