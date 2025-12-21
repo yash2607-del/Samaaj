@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Department from '../Models/Department.js';
+import Department from './models/Department.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -37,7 +37,7 @@ const departments = [
   // Sanitation
   {
     name: 'Municipal Corporation of Delhi (MCD)',
-    category: 'Sanitation',
+    category: 'Sanitization',
     subcategory: 'Cleanliness, Garbage, Sweeping, Drains',
     coverageAreas: ['Most of Delhi'],
     moderatorAuthority: 'MCD Sanitation Department (Zonal Health Officer)',
@@ -46,7 +46,7 @@ const departments = [
   },
   {
     name: 'New Delhi Municipal Council (NDMC)',
-    category: 'Sanitation',
+    category: 'Sanitization',
     subcategory: 'Cleanliness, Garbage, Sweeping, Drains',
     coverageAreas: ['Connaught Place', 'Lutyen\'s Delhi', 'Central Areas'],
     moderatorAuthority: 'NDMC Sanitation Department (Zonal Health Officer)',
@@ -55,7 +55,7 @@ const departments = [
   },
   {
     name: 'Delhi Cantonment Board (DCB)',
-    category: 'Sanitation',
+    category: 'Sanitization',
     subcategory: 'Cleanliness, Garbage, Sweeping, Drains',
     coverageAreas: ['Cantonment (Army) Areas'],
     moderatorAuthority: 'DCB Health Department',
