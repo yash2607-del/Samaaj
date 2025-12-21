@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Complaint from '../models/complaint.js';
+import Complaint from '../Models/complaint.js';
 
 const list = async (req, res) => {
   try {
