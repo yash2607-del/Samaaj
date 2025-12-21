@@ -14,7 +14,8 @@ import authRouter from './routes/auth.js';
 import chatbotRouter from './routes/chatbot.js';
 dotenv.config();
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+const FRONTEND_URL = process.env.FRONTEND_URL;
+app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 // Debugging: log incoming update-status requests and their responses
