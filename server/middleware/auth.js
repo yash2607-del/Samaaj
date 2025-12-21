@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { Moderator as ModeratorUser, User } from '../models/User.js';
+import { Moderator as ModeratorUser, User } from '../Models/User.js';
 import resolveModeratorDept from '../utils/resolveModeratorDept.js';
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
