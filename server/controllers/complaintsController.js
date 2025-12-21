@@ -4,7 +4,8 @@ import Complaint from '../models/complaint.js';
 import Moderator from '../models/Moderator.js';
 import Department from '../models/Department.js';
 import { Citizen, Moderator as ModeratorUser } from '../models/User.js';
-import Notification from '../Models/Notification.js';
+import resolveModeratorDept from '../utils/resolveModeratorDept.js';
+import Notification from '../models/Notification.js';
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -44,11 +45,24 @@ const listComplaints = async (req, res) => {
     const wantsDistrictScope = scope === 'district' || scope === 'nearby' || nearby === '1' || nearby === 'true' || nearby === 'yes';
 
     if (roleLower === 'moderator') {
-      const deptFromToken = req.user.department;
-      if (!deptFromToken || !mongoose.Types.ObjectId.isValid(String(deptFromToken))) {
-        return res.status(403).json({ message: "Moderator's department not found in token" });
+      // Resolve moderator department using centralized resolver (handles new & legacy collections)
+      let resolvedDeptId = null;
+      try {
+        resolvedDeptId = await resolveModeratorDept({ userId, email: req.user?.email });
+      } catch (e) {
+        console.error('complaintsController.listComplaints: error resolving moderator department', e);
       }
-      filter.department = String(deptFromToken);
+
+      if (!resolvedDeptId) {
+        console.warn("complaintsController.listComplaints: moderator department not found after resolution attempts");
+        if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+          console.warn('Non-production mode: allowing moderator to fetch all complaints without department filter');
+        } else {
+          return res.status(403).json({ message: "Moderator's department not found in token or DB" });
+        }
+      } else {
+        filter.department = resolvedDeptId;
+      }
 
       try {
         const mod = await ModeratorUser.findOne({ userId }).select('assignedArea').lean();
@@ -103,11 +117,18 @@ const groupByDepartment = async (req, res) => {
 
     const match = {};
     if (roleLower === 'moderator') {
-      const deptFromToken = req.user.department;
-      if (!deptFromToken || !mongoose.Types.ObjectId.isValid(String(deptFromToken))) {
+      // Attempt to resolve moderator department using centralized resolver
+      let resolvedDept = null;
+      try {
+        const deptId = await resolveModeratorDept({ userId: req.user?.id, email: req.user?.email });
+        if (deptId && mongoose.Types.ObjectId.isValid(String(deptId))) resolvedDept = mongoose.Types.ObjectId(String(deptId));
+      } catch (e) {
+        console.error('Error resolving department in groupByDepartment:', e);
+      }
+      if (!resolvedDept) {
         return res.status(403).json({ message: "Moderator's department not found in token" });
       }
-      match.department = mongoose.Types.ObjectId(String(deptFromToken));
+      match.department = mongoose.Types.ObjectId(resolvedDept);
     } else if (roleLower === 'citizen') {
       match.userId = mongoose.Types.ObjectId(userId);
     } else if (roleLower === 'admin' || roleLower === 'administrator') {
@@ -148,11 +169,43 @@ const moderatorView = async (req, res) => {
     const { role } = req.user || {};
     if (String(role || '').toLowerCase() !== 'moderator') return res.status(403).json({ message: 'Unauthorized' });
 
-    const deptFromToken = req.user.department;
-    if (!deptFromToken || !mongoose.Types.ObjectId.isValid(String(deptFromToken))) return res.status(400).json({ message: "Moderator's department missing" });
+    // Resolve department via centralized helper (covers new & legacy moderator docs)
+    let resolvedDeptId = null;
+    try {
+      resolvedDeptId = await resolveModeratorDept({ userId: req.user?.id, email: req.user?.email });
+    } catch (e) {
+      console.error('Error resolving department in moderatorView:', e);
+    }
 
-    const complaints = await Complaint.find({ department: deptFromToken }).populate('department').sort({ createdAt: -1 });
-    res.json(complaints);
+    if (!resolvedDeptId) return res.status(400).json({ message: "Moderator's department missing" });
+
+      // If the resolved department has a category (e.g., 'Water'), show complaints
+      // for all departments that share the same category so moderators for
+      // related authorities (e.g., DJB and NDMC water) both see them.
+      let deptDoc = null;
+      try {
+        if (mongoose.Types.ObjectId.isValid(String(resolvedDeptId))) {
+          deptDoc = await Department.findById(resolvedDeptId).lean();
+        }
+      } catch (e) {
+        console.error('Error fetching department doc in moderatorView:', e);
+      }
+
+      let complaints = [];
+      if (deptDoc && deptDoc.category) {
+        const relatedDepts = await Department.find({ category: deptDoc.category }).select('_id').lean();
+        const deptIds = relatedDepts.map(d => d._id).filter(Boolean);
+        if (deptIds.length) {
+          complaints = await Complaint.find({ department: { $in: deptIds } }).populate('department').sort({ createdAt: -1 });
+        }
+      }
+
+      // Fallback to single-department behavior if above did not return results
+      if (!complaints || complaints.length === 0) {
+        complaints = await Complaint.find({ department: resolvedDeptId }).populate('department').sort({ createdAt: -1 });
+      }
+
+      res.json(complaints);
   } catch (error) {
     console.error('Error fetching moderator complaints:', error);
     res.status(500).json({ message: 'Server error' });
@@ -161,6 +214,7 @@ const moderatorView = async (req, res) => {
 
 const updateStatus = async (req, res) => {
   try {
+    console.log('[complaintsController.updateStatus] called', { method: req.method, path: req.originalUrl || req.url, params: req.params, bodyKeys: Object.keys(req.body || {}), hasFile: !!req.file });
     const { complaintId } = req.params;
     const { status, moderatorEmail, actionDescription } = req.body;
     const actionPhoto = req.file ? `/uploads/${req.file.filename}` : null;
@@ -170,8 +224,32 @@ const updateStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status", providedStatus: status });
     }
 
-    const moderator = await Moderator.findOne({ email: moderatorEmail });
-    if (!moderator) return res.status(404).json({ message: "Moderator not found" });
+    // Resolve moderator: prefer moderatorEmail from form, otherwise use authenticated user info
+    let moderator = null;
+    const lookupEmail = (moderatorEmail || req.user?.email || '').trim();
+    try {
+      // Try new moderator collection first
+      if (lookupEmail) {
+        moderator = await ModeratorUser.findOne({ email: lookupEmail });
+      }
+      if (!moderator && req.user?.id) {
+        moderator = await ModeratorUser.findOne({ userId: req.user.id });
+      }
+      // Fallback to legacy moderator collection
+      if (!moderator && lookupEmail) {
+        moderator = await Moderator.findOne({ email: lookupEmail });
+      }
+      if (!moderator && req.user?.id) {
+        moderator = await Moderator.findOne({ userId: req.user.id });
+      }
+      if (!moderator) {
+        console.warn('updateStatus: moderator not found for email/user', { lookupEmail, userId: req.user?.id });
+        return res.status(404).json({ message: "Moderator not found" });
+      }
+    } catch (e) {
+      console.error('Error resolving moderator in updateStatus:', e);
+      return res.status(500).json({ message: 'Server error resolving moderator' });
+    }
 
     let department = null;
     try {
@@ -209,7 +287,27 @@ const updateStatus = async (req, res) => {
     }
 
     if (complaint.department && complaint.department.toString() !== department._id.toString()) {
-      return res.status(403).json({ message: "Not authorized to update this complaint" });
+      // Allow if the complaint's department shares the same category as the moderator's department
+      try {
+        let compDeptDoc = null;
+        if (mongoose.Types.ObjectId.isValid(String(complaint.department))) {
+          compDeptDoc = await Department.findById(complaint.department).lean();
+        } else if (complaint.department) {
+          compDeptDoc = await Department.findOne({ name: String(complaint.department) }).lean();
+        }
+
+        const modDeptDoc = department && department._id ? await Department.findById(department._id).lean() : department;
+
+        const compCategory = compDeptDoc?.category && String(compDeptDoc.category).trim();
+        const modCategory = modDeptDoc?.category && String(modDeptDoc.category).trim();
+
+        if (!compCategory || !modCategory || compCategory.toLowerCase() !== modCategory.toLowerCase()) {
+          return res.status(403).json({ message: "Not authorized to update this complaint (department mismatch)" });
+        }
+      } catch (err) {
+        console.error('Error comparing department categories:', err);
+        return res.status(403).json({ message: "Not authorized to update this complaint" });
+      }
     }
 
     const oldStatus = complaint.status;
@@ -407,7 +505,7 @@ const removeCommunityValidate = async (req, res) => {
 const likeComplaint = async (req, res) => {
   try {
     const { complaintId } = req.params;
-    const userId = req.session?.userId;
+    const userId = req.session?.userId || req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
     const complaint = await Complaint.findById(complaintId);
@@ -444,7 +542,7 @@ const likeComplaint = async (req, res) => {
 const dislikeComplaint = async (req, res) => {
   try {
     const { complaintId } = req.params;
-    const userId = req.session?.userId;
+    const userId = req.session?.userId || req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
     const complaint = await Complaint.findById(complaintId);
@@ -471,6 +569,65 @@ const dislikeComplaint = async (req, res) => {
   }
 };
 
+const getComplaint = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(String(complaintId))) return res.status(400).json({ message: 'Invalid complaint id' });
+
+    const complaint = await Complaint.findById(complaintId).populate('department').lean();
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    // Find related complaints by category (exclude current)
+    const related = await Complaint.find({ category: complaint.category, _id: { $ne: complaint._id } })
+      .limit(10)
+      .sort({ createdAt: -1 })
+      .populate('department', 'name')
+      .lean();
+
+    res.json({ complaint, related });
+  } catch (err) {
+    console.error('Error fetching complaint:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const moderatorByCategory = async (req, res) => {
+  try {
+    const { role } = req.user || {};
+    if (String(role || '').toLowerCase() !== 'moderator') return res.status(403).json({ message: 'Unauthorized' });
+
+    const { complaintId } = req.params;
+    let category = String(req.query.category || '').trim();
+
+    if (complaintId) {
+      if (!mongoose.Types.ObjectId.isValid(String(complaintId))) return res.status(400).json({ message: 'Invalid complaint id' });
+      const base = await Complaint.findById(complaintId).lean();
+      if (!base) return res.status(404).json({ message: 'Complaint not found' });
+      category = base.category;
+    }
+
+    if (!category) return res.status(400).json({ message: 'category (or complaintId) is required' });
+
+    // Find departments matching this category
+    const departments = await Department.find({ category }).select('name').lean();
+    const deptIds = departments.map(d => d._id).filter(Boolean);
+
+    // If no departments found, respond with empty
+    if (!deptIds.length) return res.json({ category, departments: [], complaints: [] });
+
+    // Find complaints whose department is one of these departments
+    const complaints = await Complaint.find({ department: { $in: deptIds } })
+      .populate('department', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ category, departments, complaints });
+  } catch (err) {
+    console.error('Error in moderatorByCategory:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export default {
   getDepartments,
   getDepartmentById,
@@ -484,4 +641,6 @@ export default {
   removeCommunityValidate,
   likeComplaint,
   dislikeComplaint
+  ,getComplaint,
+  moderatorByCategory
 };
