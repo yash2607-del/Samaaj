@@ -43,48 +43,48 @@ export async function validateComplaintPhoto(imageFile, category, description) {
     const labels = res.labels || res.labelAnnotations || [];
     const labelTexts = labels.map(l => ({ desc: l.description, score: l.score }));
 
-      // Category keyword mapping
-      const categoryKeywords = {
-        'Sanitization': ['sanitization','garbage','waste','trash','dustbin','sweeping','garbage dump'],
-        'Cleanliness': ['cleanliness','dirty','litter','filth','cleaning'],
-        'Electricity': ['electricity','power','transformer','pole','wire','electrical'],
-        'Road': ['pothole','road','street','asphalt','pavement','roadwork'],
-        'Water': ['water','leak','drain','sewer','pipeline','flood'],
-        'Public Safety': ['danger','accident','fire','crime','hazard','unsafe'],
-        'Public Works': ['public works','infrastructure','construction']
-      };
+    // Category keyword mapping
+    const categoryKeywords = {
+      'Sanitization': ['sanitization','garbage','waste','trash','dustbin','sweeping','garbage dump'],
+      'Cleanliness': ['cleanliness','dirty','litter','filth','cleaning'],
+      'Electricity': ['electricity','power','transformer','pole','wire','electrical'],
+      'Road': ['pothole','road','street','asphalt','pavement','roadwork'],
+      'Water': ['water','leak','drain','sewer','pipeline','flood'],
+      'Public Safety': ['danger','accident','fire','crime','hazard','unsafe'],
+      'Public Works': ['public works','infrastructure','construction']
+    };
 
-      const keywords = (categoryKeywords[category] || []).map(k => k.toLowerCase());
-      let bestScore = 0;
-      let matchedLabels = [];
+    const keywords = (categoryKeywords[category] || []).map(k => k.toLowerCase());
+    let bestScore = 0;
+    let matchedLabels = [];
 
-      for (const l of labelTexts) {
-        const desc = (l.desc || '').toLowerCase();
-        for (const kw of keywords) {
-          if (desc.includes(kw) || kw.includes(desc)) {
-            const score = (l.score || 0) * 100;
-            if (score > bestScore) bestScore = score;
-            matchedLabels.push({ label: l.desc, score });
-          }
+    for (const l of labelTexts) {
+      const desc = (l.desc || '').toLowerCase();
+      for (const kw of keywords) {
+        if (desc.includes(kw) || kw.includes(desc)) {
+          const score = (l.score || 0) * 100;
+          if (score > bestScore) bestScore = score;
+          matchedLabels.push({ label: l.desc, score });
         }
       }
-
-      if (bestScore >= 60) {
-        return { isValid: true, message: `Matched labels: ${matchedLabels.map(m=>m.label).join(', ')}`, confidence: Math.round(bestScore) };
-      }
-
-      // If no strong label match, but top label seems related (fallback to description keywords)
-      const topLabel = labels[0];
-      if (topLabel) {
-        const topScore = Math.round((topLabel.score || 0) * 100);
-        return { isValid: false, message: `Top label: ${topLabel.description}`, confidence: topScore };
-      }
-
-      return { isValid: true, message: 'No strong label matches found; proceed with caution', confidence: 0 };
-    } catch (err) {
-      console.error('Google Vision error:', err);
-      // Fall back to Gemini below
     }
+
+    if (bestScore >= 60) {
+      return { isValid: true, message: `Matched labels: ${matchedLabels.map(m=>m.label).join(', ')}`, confidence: Math.round(bestScore) };
+    }
+
+    // If no strong label match, but top label seems related (fallback to description keywords)
+    const topLabel = labels[0];
+    if (topLabel) {
+      const topScore = Math.round((topLabel.score || 0) * 100);
+      return { isValid: false, message: `Top label: ${topLabel.description}`, confidence: topScore };
+    }
+
+    return { isValid: true, message: 'No strong label matches found; proceed with caution', confidence: 0 };
+  } catch (err) {
+    console.error('Google Vision error:', err);
+    // Fall back to Gemini below
+  }
 
   // If Google Vision not configured or failed, optionally fall back to Gemini-based validation
   if (!GEMINI_API_KEY || !USE_GEMINI_FALLBACK) {
@@ -163,14 +163,40 @@ Respond ONLY in this JSON format:
     }
 
     const result = JSON.parse(jsonMatch[0]);
-    
+    return result;
+  } catch (error) {
+    console.error('Gemini Vision error:', error);
     return {
-      // AI image verification disabled — simple no-op validator to remove feature
-      export async function validateComplaintPhoto(imageFile, category, description) {
-        return { isValid: true, message: 'AI verification disabled', confidence: 0 };
-      }
+      isValid: true,
+      message: 'Photo validation failed, but upload allowed. Error: ' + (error.message || ''),
+      confidence: 0
+    };
+  }
+}
 
-      export async function checkImageQuality(imageFile) {
-        return { isGoodQuality: true, brightness: 128, warning: null };
-      }
-    const msg = String(error.message || '');
+/**
+ * Utility: Convert File to base64 string
+ * @param {File} file
+ * @returns {Promise<string>}
+ */
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result.split(',')[1];
+      resolve(result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Utility: Check image quality (stub)
+ * @param {File} imageFile
+ * @returns {Promise<{isGoodQuality: boolean, brightness: number, warning: string|null}>}
+ */
+export async function checkImageQuality(imageFile) {
+  // Stub: always returns good quality
+  return { isGoodQuality: true, brightness: 128, warning: null };
+}
