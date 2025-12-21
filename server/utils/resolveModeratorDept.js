@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import { Moderator as ModeratorUser } from '../models/User.js';
-import ModeratorLegacy from '../models/Moderator.js';
-import Department from '../models/Department.js';
-import { User } from '../models/User.js';
+import { Moderator as ModeratorUser } from '../Models/User.js';
+import ModeratorLegacy from '../Models/Moderator.js';
+import Department from '../Models/Department.js';
+import { User } from '../Models/User.js';
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
