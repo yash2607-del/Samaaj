@@ -14,8 +14,24 @@ import authRouter from './routes/auth.js';
 import chatbotRouter from './routes/chatbot.js';
 dotenv.config();
 const app = express();
-const FRONTEND_URL = process.env.FRONTEND_URL;
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const ADDITIONAL_ALLOWED = (process.env.ADDITIONAL_ALLOWED || '').split(',').map(s => s.trim()).filter(Boolean);
+const allowedOrigins = new Set([
+  FRONTEND_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000'
+]);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    console.warn('Blocked CORS request from origin:', origin);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 // Debugging: log incoming update-status requests and their responses
