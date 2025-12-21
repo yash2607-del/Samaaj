@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { toastError, toastSuccess } from "../../utils/toast";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import API from "../../api";
 import ModeratorSidebar from "../../components/ModeratorSidebar";
+// AI image validation removed
 import {
   FiAlertCircle,
   FiCheckCircle,
@@ -64,6 +66,8 @@ export default function ModeratorComplaints() {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [actionPhoto, setActionPhoto] = useState(null);
   const [actionDescription, setActionDescription] = useState("");
+  const [actionPhotoValidating, setActionPhotoValidating] = useState(false);
+  const [actionPhotoValidation, setActionPhotoValidation] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(null);
 
   useEffect(() => {
@@ -71,7 +75,7 @@ export default function ModeratorComplaints() {
     const storedUser = JSON.parse(localStorage.getItem("user"));
 
     if (!token || !storedUser || !/moderator/i.test(storedUser.role || '')) {
-      alert("Please login as a moderator");
+      toastError("Please login as a moderator");
       navigate("/login");
       return;
     }
@@ -85,9 +89,7 @@ export default function ModeratorComplaints() {
       setError("");
       const token = localStorage.getItem("token");
       
-      const response = await axios.get("http://localhost:3000/api/complaints/", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await API.get('/api/complaints/moderator-view');
       
       const data = response.data.data || response.data;
       setComplaints(data);
@@ -96,7 +98,7 @@ export default function ModeratorComplaints() {
       setError(err.response?.data?.error || "Failed to load complaints");
       
       if (err.response?.status === 401) {
-        alert("Session expired. Please login again.");
+        toastError("Session expired. Please login again.");
         navigate("/login");
       }
     } finally {
@@ -130,16 +132,16 @@ export default function ModeratorComplaints() {
         formData.append("actionPhoto", actionPhoto);
       }
 
-      await axios.patch(
-        `http://localhost:3000/api/complaints/update-status/${complaintId}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data"
-          }
-        }
-      );
+      // Debug: log token/header to ensure Authorization is attached
+      try {
+        const debugToken = localStorage.getItem('token');
+        // eslint-disable-next-line no-console
+        console.debug('DEBUG update-status token present?', !!debugToken);
+      } catch (e) {
+        // ignore
+      }
+
+      await API.patch(`/api/complaints/update-status/${complaintId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
       // Reset form
       setActionPhoto(null);
@@ -148,10 +150,10 @@ export default function ModeratorComplaints() {
       
       // Refresh complaints
       await fetchComplaints();
-      alert("Status updated successfully!");
+      toastSuccess("Status updated successfully!");
     } catch (error) {
       console.error("Error updating status:", error);
-      alert(error.response?.data?.message || "Failed to update status");
+      toastError(error.response?.data?.message || "Failed to update status");
     } finally {
       setUpdatingStatus(null);
     }
@@ -159,7 +161,11 @@ export default function ModeratorComplaints() {
 
   const handlePhotoChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setActionPhoto(e.target.files[0]);
+      const file = e.target.files[0];
+      setActionPhoto(file);
+      // reset any previous validation state when a new photo is chosen
+      setActionPhotoValidation(null);
+      setActionPhotoValidating(false);
     }
   };
 
@@ -430,6 +436,28 @@ export default function ModeratorComplaints() {
                               <small className="text-success d-block mt-1">
                                 ✓ {actionPhoto.name}
                               </small>
+                            )}
+
+                            {actionPhotoValidating && (
+                              <div className="mt-2 d-flex align-items-center gap-2" style={{ color: "#2196F3", fontSize: "0.9rem" }}>
+                                <div className="spinner-border spinner-border-sm" role="status"></div>
+                                <span>AI is validating action photo...</span>
+                              </div>
+                            )}
+
+                            {actionPhotoValidation && !actionPhotoValidating && (
+                              <div className={`mt-2 d-flex align-items-center gap-2 p-2 rounded`} 
+                                   style={{ 
+                                     backgroundColor: actionPhotoValidation.isValid ? '#E8F5E9' : '#FFF3E0',
+                                     color: actionPhotoValidation.isValid ? '#2E7D32' : '#F57C00',
+                                     fontSize: '0.9rem'
+                                   }}>
+                                {actionPhotoValidation.isValid ? <FiCheckCircle /> : <FiEye />}
+                                <span>
+                                  {actionPhotoValidation.message} 
+                                  {actionPhotoValidation.confidence > 0 && ` (${actionPhotoValidation.confidence}% confidence)`}
+                                </span>
+                              </div>
                             )}
                           </div>
 

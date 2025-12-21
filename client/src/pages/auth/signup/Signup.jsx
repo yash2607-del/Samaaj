@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import axios from "axios";
@@ -7,6 +7,7 @@ import { FiUser, FiMail, FiLock, FiMapPin, FiTag, FiArrowLeft, FiEye, FiEyeOff }
 function Signup() {
   const [role, setRole] = useState("Citizen");
   const [department, setDepartment] = useState("");
+  const [departments, setDepartments] = useState([]);
   const [fullName, setFullName] = useState("");
   const [location, setLocation] = useState("");
   const [assignedArea, setAssignedArea] = useState("");
@@ -19,6 +20,24 @@ function Signup() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchDepartments = async () => {
+      try {
+        const resp = await fetch('http://localhost:3000/api/complaints/departments');
+        if (!mounted) return;
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const list = Array.isArray(data) ? data : (data.data || data);
+        setDepartments(list || []);
+      } catch (err) {
+        console.error('Failed to load departments for signup:', err);
+      }
+    };
+    fetchDepartments();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -275,12 +294,10 @@ function Signup() {
                             required
                             style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
                           >
-                            <option value="">Select Department</option>
-                            <option>Electricity</option>
-                            <option>Road</option>
-                            <option>Water</option>
-                            <option>Sanitation</option>
-                            <option>Public Safety</option>
+                                <option value="">Select Department</option>
+                                {departments.map(d => (
+                                  <option key={d._id || d.name} value={d._id || d.name}>{d.name}{d.category ? ` — ${d.category}` : ''}</option>
+                                ))}
                           </select>
                         </div>
                       </div>

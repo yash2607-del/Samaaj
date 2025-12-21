@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toastError } from "../../utils/toast";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ModeratorSidebar from "../../components/ModeratorSidebar";
@@ -16,7 +17,7 @@ const ModeratorProfile = () => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
 
     if (!token || !storedUser || !/moderator/i.test(storedUser.role || '')) {
-      alert("Please login as a moderator");
+      toastError("Please login as a moderator");
       navigate("/login");
       return;
     }
@@ -55,7 +56,7 @@ const ModeratorProfile = () => {
       .catch((err) => {
         console.error("Error fetching profile or department:", err);
         if (err.response?.status === 401 || err.response?.status === 403) {
-          alert("Session expired. Please login again.");
+          toastError("Session expired. Please login again.");
           navigate("/login");
         } else {
           setError(err.response?.data?.message || "Failed to load profile.");

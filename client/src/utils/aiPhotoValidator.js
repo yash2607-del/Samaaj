@@ -2,6 +2,10 @@
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GOOGLE_VISION_KEY = import.meta.env.VITE_GOOGLE_VISION_KEY || '';
+const GOOGLE_VISION_URL = (key) => `https://vision.googleapis.com/v1/images:annotate?key=${key}`;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const USE_GEMINI_FALLBACK = String(import.meta.env.VITE_USE_GEMINI_FALLBACK || '').toLowerCase() === 'true';
 
 /**
  * Validate if uploaded photo is relevant to the complaint
@@ -11,11 +15,83 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
  * @returns {Promise<{isValid: boolean, message: string, confidence: number}>}
  */
 export async function validateComplaintPhoto(imageFile, category, description) {
-  if (!GEMINI_API_KEY) {
-    console.warn('Gemini API key not found. Photo validation disabled.');
+  // Prefer server-side Vision proxy if available (fast label detection + safe search)
+  try {
+    const base64Image = await fileToBase64(imageFile);
+    const resp = await fetch(`${API_BASE}/api/vision/classify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64Image })
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => '');
+      throw new Error(`Vision proxy error: ${resp.status} ${resp.statusText} ${txt}`);
+    }
+
+    const j = await resp.json();
+    // server returns { labels: [{description,score}], safe: { ... } }
+    const res = j || {};
+
+    // Safe search checks
+    const safe = res.safe || res.safeSearchAnnotation || {};
+    const dangerFlags = ['LIKELY', 'VERY_LIKELY', 'POSSIBLE'];
+    if (dangerFlags.includes((safe.adult || '').toUpperCase()) || dangerFlags.includes((safe.violence || '').toUpperCase()) || dangerFlags.includes((safe.racy || '').toUpperCase())) {
+      return { isValid: false, message: 'Image flagged as inappropriate', confidence: 100 };
+    }
+
+    const labels = res.labels || res.labelAnnotations || [];
+    const labelTexts = labels.map(l => ({ desc: l.description, score: l.score }));
+
+      // Category keyword mapping
+      const categoryKeywords = {
+        'Sanitization': ['sanitization','garbage','waste','trash','dustbin','sweeping','garbage dump'],
+        'Cleanliness': ['cleanliness','dirty','litter','filth','cleaning'],
+        'Electricity': ['electricity','power','transformer','pole','wire','electrical'],
+        'Road': ['pothole','road','street','asphalt','pavement','roadwork'],
+        'Water': ['water','leak','drain','sewer','pipeline','flood'],
+        'Public Safety': ['danger','accident','fire','crime','hazard','unsafe'],
+        'Public Works': ['public works','infrastructure','construction']
+      };
+
+      const keywords = (categoryKeywords[category] || []).map(k => k.toLowerCase());
+      let bestScore = 0;
+      let matchedLabels = [];
+
+      for (const l of labelTexts) {
+        const desc = (l.desc || '').toLowerCase();
+        for (const kw of keywords) {
+          if (desc.includes(kw) || kw.includes(desc)) {
+            const score = (l.score || 0) * 100;
+            if (score > bestScore) bestScore = score;
+            matchedLabels.push({ label: l.desc, score });
+          }
+        }
+      }
+
+      if (bestScore >= 60) {
+        return { isValid: true, message: `Matched labels: ${matchedLabels.map(m=>m.label).join(', ')}`, confidence: Math.round(bestScore) };
+      }
+
+      // If no strong label match, but top label seems related (fallback to description keywords)
+      const topLabel = labels[0];
+      if (topLabel) {
+        const topScore = Math.round((topLabel.score || 0) * 100);
+        return { isValid: false, message: `Top label: ${topLabel.description}`, confidence: topScore };
+      }
+
+      return { isValid: true, message: 'No strong label matches found; proceed with caution', confidence: 0 };
+    } catch (err) {
+      console.error('Google Vision error:', err);
+      // Fall back to Gemini below
+    }
+
+  // If Google Vision not configured or failed, optionally fall back to Gemini-based validation
+  if (!GEMINI_API_KEY || !USE_GEMINI_FALLBACK) {
+    console.warn('Gemini fallback disabled or API key not found. Photo validation skipped.');
     return {
       isValid: true,
-      message: 'Photo validation is disabled. Please add VITE_GEMINI_API_KEY to your .env file.',
+      message: 'Photo validation skipped. Configure server Vision proxy or enable Gemini fallback with VITE_USE_GEMINI_FALLBACK=true and set VITE_GEMINI_API_KEY.',
       confidence: 0
     };
   }
@@ -69,7 +145,8 @@ Respond ONLY in this JSON format:
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      const txt = await response.text().catch(() => '');
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} ${txt}`);
     }
 
     const data = await response.json();
@@ -88,83 +165,12 @@ Respond ONLY in this JSON format:
     const result = JSON.parse(jsonMatch[0]);
     
     return {
-      isValid: Boolean(result.isValid),
-      message: result.message || 'Photo validated',
-      confidence: Number(result.confidence) || 0
-    };
-
-  } catch (error) {
-    console.error('Photo validation error:', error);
-    return {
-      isValid: true, // Default to valid if validation fails
-      message: `Validation error: ${error.message}. Proceeding anyway.`,
-      confidence: 0
-    };
-  }
-}
-
-/**
- * Convert File to base64 string
- */
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result.split(',')[1]; // Remove data:image/...;base64, prefix
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-/**
- * Quick image quality check (blur detection, brightness)
- */
-export async function checkImageQuality(imageFile) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(imageFile);
-    
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels = imageData.data;
-      
-      // Check average brightness
-      let totalBrightness = 0;
-      for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-        totalBrightness += (r + g + b) / 3;
+      // AI image verification disabled — simple no-op validator to remove feature
+      export async function validateComplaintPhoto(imageFile, category, description) {
+        return { isValid: true, message: 'AI verification disabled', confidence: 0 };
       }
-      const avgBrightness = totalBrightness / (pixels.length / 4);
-      
-      const isTooDark = avgBrightness < 30;
-      const isTooLight = avgBrightness > 250;
-      const isGoodQuality = !isTooDark && !isTooLight;
-      
-      URL.revokeObjectURL(url);
-      
-      resolve({
-        isGoodQuality,
-        brightness: avgBrightness,
-        warning: isTooDark ? 'Image is too dark' : isTooLight ? 'Image is overexposed' : null
-      });
-    };
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve({ isGoodQuality: true, warning: null });
-    };
-    
-    img.src = url;
-  });
-}
+
+      export async function checkImageQuality(imageFile) {
+        return { isGoodQuality: true, brightness: 128, warning: null };
+      }
+    const msg = String(error.message || '');
