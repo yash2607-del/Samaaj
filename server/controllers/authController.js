@@ -2,7 +2,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { User, Citizen, Moderator } from '../models/User.js';
+import LegacyModerator from '../models/Moderator.js';
 import Department from '../models/Department.js';
+import resolveModeratorDept from '../utils/resolveModeratorDept.js';
 
 const signup = async (req, res) => {
   try {
@@ -30,11 +32,28 @@ const signup = async (req, res) => {
       }
 
       await Moderator.create({ userId: user._id, name, email, password: hashedPassword, role, department: deptId, assignedArea });
-      if (deptId) deptIdForToken = String(deptId);
+      // fetch created moderator and populate department so we can return it and set session
+      try {
+        const createdMod = await Moderator.findOne({ userId: user._id }).select('-password').populate('department');
+        if (createdMod && createdMod.department) {
+          deptIdForToken = String(createdMod.department._id || createdMod.department);
+        }
+        if (!req.session) req.session = {};
+        req.session.user = { id: String(user._id), role: user.role, email: user.email };
+        if (deptIdForToken) req.session.user.department = deptIdForToken;
+        req.session.userId = String(user._id);
+        // include populated department in response
+        if (createdMod) {
+          userRes.department = createdMod.department || null;
+        }
+      } catch (e) {
+        // ignore
+      }
     }
 
-    const tokenPayload = { id: user._id, role: user.role };
+    const tokenPayload = { id: user._id, role: user.role, email: user.email };
     if (deptIdForToken) tokenPayload.department = deptIdForToken;
+    console.log('authController.signup: signing token payload', tokenPayload);
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     const userRes = { id: user._id, role: user.role, name: user.name, email: user.email };
@@ -60,19 +79,31 @@ const login = async (req, res) => {
 
     let deptForToken = null;
     if (user.role === 'Moderator') {
-      const mod = await Moderator.findOne({ userId: user._id }).select('department').populate('department', 'name');
+      let mod = await Moderator.findOne({ userId: user._id }).select('department').populate('department', 'name');
+      if (!mod) {
+        try {
+          mod = await LegacyModerator.findOne({ email: user.email }).select('department').lean();
+        } catch (e) {
+          console.error('Error checking legacy moderator for department fallback:', e);
+        }
+      }
       if (mod && mod.department) deptForToken = String(mod.department._id || mod.department);
     }
 
-    const tokenPayload = { id: user._id, role: user.role };
-    if (deptForToken) tokenPayload.department = deptForToken;
-
-    req.session.user = { id: String(user._id), role: user.role };
-    if (deptForToken) req.session.user.department = deptForToken;
+    const tokenPayload = { id: user._id, role: user.role, email: user.email };
+    // Ensure session user is set for session-based auth
+    if (!req.session) req.session = {};
+    req.session.user = { id: String(user._id), role: user.role, email: user.email };
+    req.session.userId = String(user._id);
+    if (deptForToken) {
+      tokenPayload.department = deptForToken;
+      req.session.user.department = deptForToken;
+    }
 
     const userRes = { id: user._id, role: user.role, name: user.name, email: user.email };
     if (deptForToken) userRes.department = deptForToken;
 
+    console.log('authController.login: signing token payload', tokenPayload);
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     return res.status(200).json({ message: 'Login successful', user: userRes, token });
@@ -99,12 +130,43 @@ const getProfile = async (req, res) => {
     const { id, role } = req.user;
     let userData;
     const roleLower = String(role || '').toLowerCase();
-    if (roleLower === 'citizen') {
-      userData = await Citizen.findOne({ userId: id }).select('-password');
-    } else if (roleLower === 'moderator') {
-      userData = await Moderator.findOne({ userId: id }).select('-password').populate('department', 'name areas');
+      if (roleLower === 'citizen') {
+        userData = await Citizen.findOne({ userId: id }).select('-password');
+      } else if (roleLower === 'moderator') {
+          // populate full department document so client gets all details
+          userData = await Moderator.findOne({ userId: id }).select('-password').populate('department');
+          // if moderator doc exists but department is missing, try to resolve from legacy/new collections
+          if (userData && !userData.department) {
+            try {
+              const resolvedDeptId = await resolveModeratorDept({ userId: id, email: req.user?.email || userData.email });
+              if (resolvedDeptId) {
+                const deptDoc = await Department.findById(String(resolvedDeptId)).lean();
+                if (deptDoc) userData.department = deptDoc;
+              }
+            } catch (e) {
+              console.error('Error resolving moderator department for profile:', e && e.message);
+            }
+          }
     }
-    if (!userData) return res.status(404).json({ error: 'User not found' });
+    // If role-specific document missing, fall back to basic User record
+    if (!userData) {
+      try {
+        const basic = await User.findById(id).select('-password').lean();
+        if (!basic) return res.status(404).json({ error: 'User not found' });
+        // Regardless of the `User.role` field, prefer returning a moderator document if one exists
+        try {
+          const mod = await Moderator.findOne({ userId: id }).select('-password').populate('department').lean();
+          if (mod) return res.json({ user: mod });
+        } catch (e) {
+          console.error('Error fetching moderator doc for profile fallback:', e && e.message);
+        }
+        return res.json({ user: basic });
+      } catch (err) {
+        console.error('Error fetching basic user as fallback:', err);
+        return res.status(404).json({ error: 'User not found' });
+      }
+    }
+
     res.json({ user: userData });
   } catch (err) {
     console.error('Profile error:', err);
@@ -123,10 +185,11 @@ const updateProfile = async (req, res) => {
 
     const roleLower = String(user.role || '').toLowerCase();
     let roleSpecificUser;
-    if (roleLower === 'citizen') {
-      roleSpecificUser = await Citizen.findOneAndUpdate({ userId }, { name, email, location }, { new: true, runValidators: true }).select('-password');
-    } else if (roleLower === 'moderator') {
-      roleSpecificUser = await Moderator.findOneAndUpdate({ userId }, { name, email }, { new: true, runValidators: true }).select('-password').populate('department', 'name areas');
+      if (roleLower === 'citizen') {
+        roleSpecificUser = await Citizen.findOneAndUpdate({ userId }, { name, email, location }, { new: true, runValidators: true }).select('-password');
+      } else if (roleLower === 'moderator') {
+        // return updated moderator record with populated department
+        roleSpecificUser = await Moderator.findOneAndUpdate({ userId }, { name, email }, { new: true, runValidators: true }).select('-password').populate('department');
     }
 
     res.json({ message: 'Profile updated successfully', user: { id: user._id, name: user.name, email: user.email, role: user.role, location: roleSpecificUser?.location } });
