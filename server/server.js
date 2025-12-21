@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
-import complaintsRouter from './routes/complaints.js';
+import complaintsRouter from './routes/Complaints.js';
 import trackRouter from './routes/track.js';
 import moderatorRouter from './routes/moderator.js';
 import notificationsRouter from './routes/notifications.js';
