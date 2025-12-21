@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import path from 'path';
-import Complaint from '../models/complaint.js';
-import Moderator from '../models/Moderator.js';
-import Department from '../models/Department.js';
-import { Citizen, Moderator as ModeratorUser } from '../models/User.js';
+import Complaint from '../Models/complaint.js';
+import Moderator from '../Models/Moderator.js';
+import Department from '../Models/Department.js';
+import { Citizen, Moderator as ModeratorUser } from '../Models/User.js';
 import resolveModeratorDept from '../utils/resolveModeratorDept.js';
-import Notification from '../models/Notification.js';
+import Notification from '../Models/Notification.js';
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
