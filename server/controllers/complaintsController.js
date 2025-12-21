@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import path from 'path';
-import Complaint from '../models/Complaint.js';
+import Complaint from '../models/complaint.js';
 import Moderator from '../models/Moderator.js';
 import Department from '../models/Department.js';
 import { Citizen, Moderator as ModeratorUser } from '../models/User.js';

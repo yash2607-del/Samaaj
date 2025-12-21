@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Department from '../models/Department.js';
 import Moderator from '../models/Moderator.js';
-import Complaint from '../models/Complaint.js';
+import Complaint from '../models/complaint.js';
 
 const moderatorView = async (req, res) => {
   try {
