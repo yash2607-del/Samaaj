@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "natural": "^6.2.0",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
+    
     "connect-mongo": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -17,6 +19,10 @@
   },
   "type": "module",
   "scripts": {
-    "seed": "node scripts/seed.js"
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "seed": "node scripts/seed.js",
+    "assign-dept": "node scripts/assignModeratorDept.js",
+    "drop-cols": "node scripts/dropCollections.js"
   }
 }

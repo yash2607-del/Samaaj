@@ -34,6 +34,7 @@ const moderatorSchema = new mongoose.Schema({
 });
 
 // Check if the model already exists to prevent the OverwriteModelError
-const Moderator = mongoose.models.Moderator || mongoose.model('Moderator', moderatorSchema);
+// Register legacy model under a distinct name to avoid colliding with the new `Moderator` model
+const LegacyModerator = mongoose.models.LegacyModerator || mongoose.model('LegacyModerator', moderatorSchema, 'moderators');
 
-export default Moderator;
+export default LegacyModerator;
