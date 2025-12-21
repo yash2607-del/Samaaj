@@ -10,7 +10,7 @@ const getNotifications = async (req, res) => {
 
     const unreadCount = await Notification.countDocuments({ userId: id, isRead: false });
 
-    res.json({ data: notifications, unreadCount });
+    res.json({ notifications, unreadCount });
   } catch (error) {
     console.error('Get notifications error:', error);
     res.status(500).json({ error: error.message });

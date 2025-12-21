@@ -380,6 +380,45 @@ const assignComplaint = async (req, res) => {
       await moderator.save();
     }
 
+    // Create notifications: notify the assigned moderator (if linked to a user account)
+    try {
+      // Try to find the new-style Moderator user doc to get a `userId` ref
+      const modUser = await ModeratorUser.findOne({ email: moderatorEmail });
+      if (modUser && modUser.userId) {
+        try {
+          await Notification.create({
+            userId: modUser.userId,
+            type: 'assignment',
+            title: 'New Assignment',
+            message: `You have been assigned the complaint "${complaint.title}"`,
+            complaintId: complaint._id,
+            metadata: { moderatorName: modUser.name }
+          });
+        } catch (notifErr) {
+          console.error('Error creating assignment notification for moderator:', notifErr);
+        }
+      }
+
+      // Notify the complaint owner that their complaint was assigned
+      if (complaint.userId) {
+        const moderatorDisplayName = (modUser && modUser.name) || moderatorEmail || 'a moderator';
+        try {
+          await Notification.create({
+            userId: complaint.userId,
+            type: 'assignment',
+            title: 'Your Issue Was Assigned',
+            message: `Your complaint "${complaint.title}" was assigned to ${moderatorDisplayName}`,
+            complaintId: complaint._id,
+            metadata: { moderatorName: moderatorDisplayName }
+          });
+        } catch (notifErr) {
+          console.error('Error creating assignment notification for complaint owner:', notifErr);
+        }
+      }
+    } catch (err) {
+      console.error('Error while creating assignment notifications:', err);
+    }
+
     const populated = await Complaint.findById(complaint._id).populate('assignedTo', 'name email').populate('department', 'name');
     res.json({ message: 'Complaint assigned', complaint: populated });
   } catch (err) {
