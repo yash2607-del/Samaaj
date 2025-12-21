@@ -1,11 +1,6 @@
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-
-// Support both the newer moderator collection (from models/User.js)
-// and the legacy Moderator model/collection.
 import { Moderator as ModeratorUser, User } from '../models/User.js';
-import ModeratorLegacy from '../models/Moderator.js';
-import Department from '../models/Department.js';
 import resolveModeratorDept from '../utils/resolveModeratorDept.js';
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
