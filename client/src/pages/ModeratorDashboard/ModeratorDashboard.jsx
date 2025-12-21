@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { toastError } from "../../utils/toast";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import ModeratorSidebar from "../../components/ModeratorSidebar";
@@ -50,13 +51,13 @@ const ModeratorDashboard = () => {
         console.error("Status code:", err.response?.status);
         
         if (err.response?.status === 401) {
-          alert("Your session has expired. Please login again.");
+          toastError("Your session has expired. Please login again.");
           localStorage.clear();
           window.location.href = "/login";
         } else if (err.response?.status === 403) {
-          alert(err.response?.data?.message || "You don't have permission to view these complaints.");
+          toastError(err.response?.data?.message || "You don't have permission to view these complaints.");
         } else {
-          alert("Failed to load complaints. Please try again.");
+          toastError("Failed to load complaints. Please try again.");
         }
       })
       .finally(() => setLoading(false));
@@ -72,18 +73,18 @@ const ModeratorDashboard = () => {
       setUpdating(complaintId);
       const token = localStorage.getItem("token");
       console.log('Updating status:', { complaintId, newStatus, userEmail: user.email });
-      
+
       const response = await axios.patch(`http://localhost:3000/api/complaints/update-status/${complaintId}`, {
         status: newStatus,
         moderatorEmail: user.email
-      });
+      }, { headers: { Authorization: `Bearer ${token}` } });
       
       console.log('Update response:', response.data);
       // Refresh complaints after update
       fetchComplaints(token);
     } catch (error) {
       console.error("Error updating status:", error.response?.data || error.message);
-      alert(error.response?.data?.message || "Failed to update status. Please try again.");
+      toastError(error.response?.data?.message || "Failed to update status. Please try again.");
     } finally {
       setUpdating(null);
     }
@@ -95,11 +96,11 @@ const ModeratorDashboard = () => {
       const token = localStorage.getItem("token");
       await axios.post(`http://localhost:3000/api/complaints/assign/${complaintId}`, {
         moderatorEmail: user.email
-      });
+      }, { headers: { Authorization: `Bearer ${token}` } });
       fetchComplaints(token);
     } catch (error) {
       console.error('Error assigning complaint:', error.response?.data || error.message);
-      alert(error.response?.data?.message || 'Failed to assign complaint');
+      toastError(error.response?.data?.message || 'Failed to assign complaint');
     } finally {
       setUpdating(null);
     }
@@ -115,7 +116,7 @@ const ModeratorDashboard = () => {
     setUser(storedUser);
 
     if (!storedUser || !token || !/moderator/i.test(storedUser.role || '')) {
-      alert("Please login as a moderator");
+      toastError("Please login as a moderator");
       window.location.href = "/login";
       return;
     }
@@ -152,8 +153,29 @@ const ModeratorDashboard = () => {
         setModeratorDept(storedUser.department || "Unknown");
       });
 
-    // Fetch complaints using auth (this should work independently)
-    fetchComplaints(token);
+    // Fetch complaints using moderator-view (department-scoped)
+    axios.get('http://localhost:3000/api/complaints/moderator-view', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        const data = res.data.data || res.data || [];
+        setComplaints(data);
+        setFilteredComplaints(data);
+        const total = data.length;
+        const resolved = data.filter(c => c.status === 'Resolved').length;
+        const processing = data.filter(c => c.status === 'In Progress').length;
+        setStats({ total, resolved, processing });
+      })
+      .catch(err => {
+        console.error('Error fetching moderator complaints:', err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          toastError('Your session has expired. Please login again.');
+          localStorage.clear();
+          window.location.href = '/login';
+        } else if (err.response?.status === 403) {
+          toastError(err.response?.data?.message || "You don't have permission to view these complaints.");
+        } else {
+          toastError('Failed to load complaints. Please try again.');
+        }
+      });
   }, []);
 
   // Filter complaints based on search and filters

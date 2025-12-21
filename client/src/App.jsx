@@ -15,6 +15,9 @@ import ModeratorDashboard from "./pages/ModeratorDashboard/ModeratorDashboard"
 import ModeratorProfile from "./pages/ModeratorProfile/ModeratorProfile"
 import ModeratorComplaints from "./pages/ModeratorComplaints/ModeratorComplaints"
 import NotFound from "./pages/NotFound/NotFound";
+import Chatbot from "./components/Chatbot";
+// Toast rendering is handled via dynamic import in the toast utility to
+// avoid runtime failures when third-party toast components aren't ready.
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -37,18 +40,25 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route path="/complaint" element={<Create />} />
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/dashboard" element={user ? (user.role === 'Moderator' ? <Navigate to="/moderator-dashboard" replace /> : <Dashboard />) : <Navigate to="/login" replace />} />
       <Route path="/nearby-complaints" element={<NearbyComplaints />} />
       <Route path="/track-issue" element={<Usertrack />}/>
       <Route path="/user-profile" element={<UserProfile />}/>
       <Route path="/settings" element={<Settings />}/>
       <Route path="/profile" element={<Navigate to="/user-profile" replace />}/>
-      <Route path="/moderator-dashboard" element={<ModeratorDashboard />} />
-      <Route path="/moderator-profile" element={<ModeratorProfile />} />
-      <Route path="/moderator-complaints" element={<ModeratorComplaints />} />
+      <Route path="/moderator-dashboard" element={user ? (user.role === 'Moderator' ? <ModeratorDashboard /> : <Navigate to="/dashboard" replace />) : <Navigate to="/login" replace />} />
+      <Route path="/moderator-profile" element={user ? (user.role === 'Moderator' ? <ModeratorProfile /> : <Navigate to="/user-profile" replace />) : <Navigate to="/login" replace />} />
+      <Route path="/moderator-complaints" element={user ? (user.role === 'Moderator' ? <ModeratorComplaints /> : <Navigate to="/dashboard" replace />) : <Navigate to="/login" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
-export default App;
+export default function AppWithChatbotRoutes() {
+  return (
+    <>
+      <App />
+      <Chatbot />
+    </>
+  );
+}
