@@ -2,9 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../api.js";
 import CitizenSidebar from "../../components/CitizenSidebar";
-import { FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, FiSend, FiArrowLeft, FiMic, FiMicOff, FiEye } from 'react-icons/fi';
-import { voiceAssistant } from "../../utils/voiceAssistant";
-import { validateComplaintPhoto, checkImageQuality } from "../../utils/aiPhotoValidator";
+import { FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, FiSend, FiArrowLeft, FiEye } from 'react-icons/fi';
+// AI image validation removed
 
 const Create = () => {
   const navigate = useNavigate();
@@ -27,362 +26,135 @@ const Create = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Handle photo selection & basic verification
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) {
+      setPhoto(null);
+      setPhotoPreview(null);
+      setPhotoError("");
+      setPhotoValidation(null);
+      return;
+    }
 
-  // AI Features State
-  const [isVoiceListening, setIsVoiceListening] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const [activeSection, setActiveSection] = useState(null); // 'issue' or 'location'
-  const [currentStep, setCurrentStep] = useState(0); // Track which field we're filling
-  const [photoValidating, setPhotoValidating] = useState(false);
-  const [photoValidation, setPhotoValidation] = useState(null);
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Only image files are allowed.");
+      setPhoto(null);
+      setPhotoPreview(null);
+      return;
+    }
 
-  // Voice flow steps for issue section
-  const issueSteps = [
-    { field: 'title', prompt: 'Say: Problem title is [your title]', instruction: 'State the problem briefly' },
-    { field: 'category', prompt: 'Say: Category is [sanitization/electricity/water/road/cleanliness/public safety]', instruction: 'Choose the category' },
-    { field: 'description', prompt: 'Say: Problem description is [detailed description]', instruction: 'Describe in detail' }
-  ];
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("File size must be less than 5MB.");
+      setPhoto(null);
+      setPhotoPreview(null);
+      return;
+    }
 
-  // Voice flow steps for location section
-  const locationSteps = [
-    { field: 'addressLine', prompt: 'Say: Address is [house number, street name]', instruction: 'Your street address' },
-    { field: 'landmark', prompt: 'Say: Landmark is [landmark name]', instruction: 'Nearby landmark' },
-    { field: 'district', prompt: 'Say: District is [district name]', instruction: 'Delhi district' },
-    { field: 'pincode', prompt: 'Say: Pincode is [6 digits]', instruction: 'Area pincode' }
-  ];
+    setPhoto(file);
+    setPhotoError("");
+    setPhotoPreview(URL.createObjectURL(file));
 
-  // Fetch departments when component mounts
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const response = await API.get("/api/complaints/departments");
-        // Remove duplicates by name
-        const uniqueDepts = response.data.reduce((acc, dept) => {
-          if (!acc.find(d => d.name.toLowerCase() === dept.name.toLowerCase())) {
-            acc.push(dept);
-          }
-          return acc;
-        }, []);
-        setDepartments(uniqueDepts);
-      } catch (error) {
-        console.error("Error fetching departments:", error);
-        setErrorMsg("Failed to load departments. Please try again.");
-      }
-    };
-    fetchDepartments();
-  }, []);
-
-  // Filter departments based on selected category
-  const getFilteredDepartments = () => {
-    if (!category) return [];
-    
-    // Filter departments that match the selected category
-    return departments.filter(dept => 
-      dept.category && dept.category.toLowerCase() === category.toLowerCase()
-    );
+    // No AI validation — only basic client-side checks
   };
-
-  // Auto-select department when category changes and only one relevant department exists
-  useEffect(() => {
-    if (category && departments.length > 0) {
-      const filtered = getFilteredDepartments();
-      if (filtered.length === 1) {
-        setDepartment(filtered[0]._id);
-      }
-    }
-  }, [category, departments]);
-
-  // Auto detect location and get address using Google Maps Geocoding API
+            
   const handleAutoDetect = () => {
-    // Check if geolocation is available
-    if (!navigator.geolocation) {
-      setErrorMsg("Geolocation is not supported by your browser. Please enter location manually.");
-      return;
-    }
-
-    // Check if page is secure (HTTPS or localhost)
-    const isSecureContext = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    if (!isSecureContext) {
-      setErrorMsg("Location access requires HTTPS or localhost. Please use HTTPS or enter location manually.");
-      return;
-    }
-
-    // Request permission and show loading
-    setAutoDetectLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
+    setAutoDetectLoading(true);
 
-    // Check permission state first
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'geolocation' })
-        .then((permissionStatus) => {
-          if (permissionStatus.state === 'denied') {
-            setAutoDetectLoading(false);
-            setErrorMsg("Location access is blocked. Please enable location permissions in your browser settings:\n1. Click the lock icon in address bar\n2. Allow location access\n3. Refresh the page");
-            return;
-          }
-          // Proceed with geolocation
-          requestGeolocation();
-        })
-        .catch(() => {
-          // Fallback if permissions API not available
-          requestGeolocation();
-        });
-    } else {
-      // Fallback if permissions API not available
-      requestGeolocation();
+    if (!navigator.geolocation) {
+      setErrorMsg('Geolocation is not supported by your browser.');
+      setAutoDetectLoading(false);
+      return;
     }
-  };
 
-  const requestGeolocation = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        // Use Google Maps Geocoding API for accurate location
-        const googleApiKey = import.meta?.env?.VITE_GOOGLE_MAPS_API_KEY || "";
-
         try {
-          let addressData = null;
+          const { latitude, longitude } = position.coords;
+          // Use OpenStreetMap Nominatim reverse geocoding
+          const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+          if (!resp.ok) throw new Error('Reverse geocoding failed');
+          const data = await resp.json();
+          const addr = data.address || {};
+          const addressData = {
+            street: addr.road ? `${addr.house_number ? addr.house_number + ' ' : ''}${addr.road}` : (addr.neighbourhood || addr.suburb || ''),
+            locality: addr.suburb || addr.neighbourhood || addr.city || addr.town || 'New Delhi',
+            district: addr.county || addr.city_district || addr.state_district || '',
+            state: addr.state || 'Delhi',
+            pincode: addr.postcode || '',
+            landmark: addr.amenity || addr.shop || ''
+          };
 
-          if (googleApiKey) {
-            // Google Maps Geocoding API - Most accurate
-            const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${googleApiKey}&language=en`
-            );
-            const data = await response.json();
+          const formatted = data.display_name || '';
 
-            if (data.status === 'OK' && data.results && data.results.length > 0) {
-              const result = data.results[0];
-              const components = result.address_components;
-              
-              // Extract address components
-              let street = '';
-              let locality = '';
-              let district = '';
-              let state = '';
-              let pincode = '';
-              let landmark = '';
-
-              components.forEach(component => {
-                const types = component.types;
-                if (types.includes('street_number') || types.includes('premise')) {
-                  street = component.long_name + ' ' + street;
-                } else if (types.includes('route')) {
-                  street += component.long_name;
-                } else if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
-                  locality = component.long_name;
-                } else if (types.includes('locality')) {
-                  if (!locality) locality = component.long_name;
-                } else if (types.includes('administrative_area_level_3')) {
-                  district = component.long_name;
-                } else if (types.includes('administrative_area_level_1')) {
-                  state = component.long_name;
-                } else if (types.includes('postal_code')) {
-                  pincode = component.long_name;
-                } else if (types.includes('point_of_interest') || types.includes('establishment')) {
-                  landmark = component.long_name;
-                }
-              });
-
-              addressData = {
-                formatted: result.formatted_address,
-                street: street.trim() || result.formatted_address.split(',')[0],
-                locality: locality || 'New Delhi',
-                district: district || '',
-                state: state || 'Delhi',
-                pincode: pincode || '',
-                landmark: landmark || ''
-              };
-            }
-          }
-
-          // Fallback to OpenStreetMap Nominatim if Google API not available
-          if (!addressData) {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-              {
-                headers: {
-                  'User-Agent': 'Samaaj-Complaint-App'
-                }
-              }
-            );
-            const data = await response.json();
-
-            if (data && data.address) {
-              const addr = data.address;
-              addressData = {
-                formatted: data.display_name,
-                street: addr.road || addr.street || addr.house_number || '',
-                locality: addr.suburb || addr.neighbourhood || addr.city || addr.town || 'New Delhi',
-                district: addr.county || addr.city_district || addr.state_district || '',
-                state: addr.state || 'Delhi',
-                pincode: addr.postcode || '',
-                landmark: addr.amenity || addr.shop || ''
-              };
-            }
-          }
-
-          if (addressData) {
-            setAddressLine(addressData.street);
-            setCity(addressData.locality);
-            setDistrict(addressData.district);
-            setStateName(addressData.state);
-            setPincode(addressData.pincode);
-            if (addressData.landmark) setLandmark(addressData.landmark);
-            setLocation(addressData.formatted);
-            setSuccessMsg("Location detected successfully!");
-          } else {
-            setErrorMsg("Unable to determine address from your location. Please enter manually.");
-          }
+          setAddressLine(addressData.street || formatted);
+          setCity(addressData.locality);
+          setDistrict(addressData.district);
+          setStateName(addressData.state);
+          setPincode(addressData.pincode);
+          if (addressData.landmark) setLandmark(addressData.landmark);
+          setLocation(formatted);
+          setSuccessMsg('Location detected successfully!');
         } catch (error) {
-          console.error("Geocoding error:", error);
-          setErrorMsg("Failed to fetch address. Please check your internet connection and try again.");
+          console.error('Geocoding error:', error);
+          setErrorMsg('Failed to fetch address. Please check your internet connection and try again.');
         } finally {
           setAutoDetectLoading(false);
         }
       },
       (error) => {
         setAutoDetectLoading(false);
-        console.error("Geolocation error:", error);
-        
-        // Handle different error types with detailed messages
+        console.error('Geolocation error:', error);
         switch (error.code) {
-          case 1: // PERMISSION_DENIED
+          case 1:
             setErrorMsg("Location access denied. To enable:\n• Click the location/lock icon in your browser's address bar\n• Select 'Allow' for location\n• Refresh the page and try again");
             break;
-          case 2: // POSITION_UNAVAILABLE
+          case 2:
             setErrorMsg("Location information unavailable. Please:\n• Check if location services are enabled on your device\n• Ensure you have GPS/WiFi enabled\n• Try again in a few seconds");
             break;
-          case 3: // TIMEOUT
+          case 3:
             setErrorMsg("Location request timed out. This might be due to:\n• Weak GPS signal\n• Slow internet connection\n• Please try again");
             break;
           default:
-            setErrorMsg("Unable to retrieve your location. Please enter location manually or try again.");
+            setErrorMsg('Unable to retrieve your location. Please enter location manually or try again.');
         }
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 20000, // Increased timeout
-        maximumAge: 0
-      }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
 
-  // Handle photo selection & basic verification
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        setPhotoError("Only image files are allowed.");
-        setPhoto(null);
-        setPhotoPreview(null);
-      } else if (file.size > 5 * 1024 * 1024) {
-        setPhotoError("File size must be less than 5MB.");
-        setPhoto(null);
-        setPhotoPreview(null);
-      } else {
-        setPhoto(file);
-        setPhotoError("");
-        setPhotoPreview(URL.createObjectURL(file));
-
-        // AI: Check image quality
-        const qualityCheck = await checkImageQuality(file);
-        if (qualityCheck.warning) {
-          setPhotoError(`Warning: ${qualityCheck.warning}. You can still proceed.`);
+  // Fetch departments from server for category -> department mapping
+  useEffect(() => {
+    let mounted = true;
+    const fetchDepartments = async () => {
+      try {
+        const resp = await API.get('/api/complaints/departments');
+        if (mounted && resp?.data) {
+          // controller returns { data: [...] } or array
+          const list = Array.isArray(resp.data) ? resp.data : (resp.data.data || resp.data);
+          setDepartments(list || []);
         }
-
-        // AI: Validate photo relevance (only if category and description exist)
-        if (category && description) {
-          setPhotoValidating(true);
-          setPhotoValidation(null);
-          
-          try {
-            const validation = await validateComplaintPhoto(file, category, description);
-            setPhotoValidation(validation);
-            
-            if (!validation.isValid && validation.confidence > 60) {
-              setPhotoError(validation.message);
-            }
-          } catch (error) {
-            console.error('Photo validation failed:', error);
-          } finally {
-            setPhotoValidating(false);
-          }
-        }
+      } catch (err) {
+        console.error('Failed to load departments:', err);
       }
-    } else {
-      setPhoto(null);
-      setPhotoPreview(null);
-      setPhotoError("");
-      setPhotoValidation(null);
-    }
+    };
+    fetchDepartments();
+    return () => { mounted = false; };
+  }, []);
+
+  const getFilteredDepartments = () => {
+    if (!category) return departments;
+    const cat = String(category).toLowerCase();
+    return departments.filter(d => {
+      const name = String(d.name || '').toLowerCase();
+      const c = String(d.category || '').toLowerCase();
+      const sub = String(d.subcategory || '').toLowerCase();
+      return c === cat || sub.includes(cat) || name.includes(cat);
+    });
   };
 
-  // Voice Assistant Functions
-  const startVoiceInput = (section) => {
-    if (!voiceAssistant.isSupported()) {
-      alert('Voice input is not supported in your browser. Please use Chrome, Edge, or Safari.');
-      return;
-    }
-
-    setActiveSection(section);
-    setCurrentStep(0);
-    setIsVoiceListening(true);
-    setVoiceTranscript("");
-    startListeningForCurrentStep(section, 0);
-  };
-
-  const startListeningForCurrentStep = (section, step) => {
-    const steps = section === 'issue' ? issueSteps : locationSteps;
-    
-    if (step >= steps.length) {
-      // All steps completed
-      setIsVoiceListening(false);
-      setActiveSection(null);
-      setCurrentStep(0);
-      return;
-    }
-
-    const currentField = steps[step].field;
-    
-    voiceAssistant.startListening(
-      (result) => {
-        setVoiceTranscript(result.final || result.interim);
-      },
-      (error) => {
-        console.error('Voice error:', error);
-        setIsVoiceListening(false);
-        setActiveSection(null);
-        setCurrentStep(0);
-        alert(`Voice input error: ${error}`);
-      },
-      (finalText) => {
-        // Stop command or completion
-        if (finalText && finalText.trim()) {
-          processFieldInput(section, currentField, finalText);
-        }
-        
-        // Move to next step
-        const nextStep = step + 1;
-        setCurrentStep(nextStep);
-        setVoiceTranscript("");
-        
-        if (nextStep < steps.length) {
-          // Continue to next field
-          setTimeout(() => {
-            startListeningForCurrentStep(section, nextStep);
-          }, 500);
-        } else {
-          // All done
-          setIsVoiceListening(false);
-          setActiveSection(null);
-          setCurrentStep(0);
-        }
-      }
-    );
-  };
 
   const processFieldInput = (section, field, text) => {
     // Extract the value after common patterns
@@ -525,42 +297,7 @@ const Create = () => {
     }
   };
 
-  const stopVoiceInput = () => {
-    voiceAssistant.stopListening();
-    
-    // Process current transcript before stopping
-    if (voiceTranscript && voiceTranscript.trim()) {
-      const steps = activeSection === 'issue' ? issueSteps : locationSteps;
-      const currentField = steps[currentStep]?.field;
-      
-      if (currentField) {
-        processFieldInput(activeSection, currentField, voiceTranscript);
-      }
-      
-      // Move to next step
-      const nextStep = currentStep + 1;
-      setCurrentStep(nextStep);
-      setVoiceTranscript("");
-      
-      if (nextStep < steps.length) {
-        // Continue to next field
-        setTimeout(() => {
-          startListeningForCurrentStep(activeSection, nextStep);
-        }, 500);
-      } else {
-        // All done
-        setIsVoiceListening(false);
-        setActiveSection(null);
-        setCurrentStep(0);
-      }
-    } else {
-      // No transcript, just stop
-      setIsVoiceListening(false);
-      setActiveSection(null);
-      setCurrentStep(0);
-      setVoiceTranscript("");
-    }
-  };
+  
 
   // Handle form submission -> send multipart/form-data to server
   const handleSubmit = async (e) => {
@@ -688,47 +425,7 @@ const Create = () => {
             <h4 className="fw-bold mb-0" style={{ color: "white", fontSize: "1.4rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
               Complaint Information
             </h4>
-            {isVoiceListening && (
-              <div className="mt-2 p-3 bg-white rounded shadow-sm" style={{ fontSize: '0.9rem' }}>
-                <div className="d-flex flex-column gap-2">
-                  <div className="d-flex align-items-center justify-content-between">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="spinner-border spinner-border-sm text-danger" role="status">
-                        <span className="visually-hidden">Listening...</span>
-                      </div>
-                      <span className="text-muted">
-                        Step {currentStep + 1}/{activeSection === 'issue' ? issueSteps.length : locationSteps.length}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-danger d-flex align-items-center gap-1"
-                      onClick={stopVoiceInput}
-                      style={{
-                        borderRadius: '8px',
-                        padding: '0.4rem 0.8rem',
-                        fontWeight: '600'
-                      }}
-                    >
-                      <FiMicOff size={14} />
-                      <span>Stop & Next</span>
-                    </button>
-                  </div>
-                  <div className="fw-bold text-primary" style={{ fontSize: '0.95rem' }}>
-                    {activeSection === 'issue' ? issueSteps[currentStep]?.prompt : locationSteps[currentStep]?.prompt}
-                  </div>
-                  {voiceTranscript && (
-                    <div className="text-dark mt-1 p-2 bg-light rounded">
-                      <small className="text-muted">You said: </small>
-                      <span className="fw-semibold">{voiceTranscript}</span>
-                    </div>
-                  )}
-                  <small className="text-muted">
-                    <strong>Tip:</strong> Say "stop" or click the button above to move to next field
-                  </small>
-                </div>
-              </div>
-            )}
+            
           </div>
 
           {/* Card Body */}
@@ -742,54 +439,11 @@ const Create = () => {
                       <FiAlertCircle className="me-2" style={{ color: "#FFB347" }} />
                       Issue Details
                     </h5>
-                    {voiceAssistant.isSupported() && (
-                      <button
-                        type="button"
-                        className="btn btn-sm d-flex align-items-center gap-2"
-                        onClick={() => activeSection === 'issue' ? stopVoiceInput() : startVoiceInput('issue')}
-                        disabled={submitting}
-                        style={{
-                          backgroundColor: activeSection === 'issue' ? '#FF6B6B' : '#FFB347',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '10px',
-                          padding: '0.5rem 1rem',
-                          fontWeight: '600',
-                          transition: 'all 0.3s'
-                        }}
-                      >
-                        {activeSection === 'issue' ? (
-                          <>
-                            <FiMicOff size={16} />
-                            <span>Stop</span>
-                          </>
-                        ) : (
-                          <>
-                            <FiMic size={16} />
-                            <span>Voice Fill</span>
-                          </>
-                        )}
-                      </button>
-                    )}
+                    
                   </div>
 
                   {/* Voice Assistant Hint */}
-                  {voiceAssistant.isSupported() && !isVoiceListening && (
-                    <div className="alert alert-info d-flex align-items-start gap-2 mb-4" style={{ backgroundColor: '#E3F2FD', border: 'none', borderLeft: '4px solid #2196F3', fontSize: '0.85rem' }}>
-                      <FiMic size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
-                      <div>
-                        <strong>Voice Guide:</strong> Click "Voice Fill" and follow step-by-step:
-                        <ol className="mb-0 mt-1 ps-3">
-                          <li>Say: "Problem title is [title]"</li>
-                          <li>Say: "Category is [category]"</li>
-                          <li>Say: "Problem description is [description]"</li>
-                        </ol>
-                        <small className="text-muted mt-1 d-block">
-                          Say "stop" or click "Stop & Next" button after each field.
-                        </small>
-                      </div>
-                    </div>
-                  )}
+                  
 
                   <div className="row g-3 mb-4">
                     {/* Problem Title */}
@@ -855,6 +509,26 @@ const Create = () => {
                           <option>Other</option>
                         </select>
                         <label htmlFor="problemCategory" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Problem Category <span style={{ color: "#D32F2F" }}>*</span></label>
+                      </div>
+                    </div>
+
+                    {/* Department (auto-suggest / select) */}
+                    <div className="col-md-6">
+                      <div className="form-floating">
+                        <select
+                          className="form-select"
+                          id="departmentSelect"
+                          value={department}
+                          onChange={(e) => setDepartment(e.target.value)}
+                          disabled={submitting}
+                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "58px" }}
+                        >
+                          <option value="">Select Department (optional)</option>
+                          {departments && departments.map((d) => (
+                            <option key={d._id || d.id || d.name} value={d._id || d.id || d.name}>{d.name}{d.category ? ` — ${d.category}` : ''}</option>
+                          ))}
+                        </select>
+                        <label htmlFor="departmentSelect" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Department (optional)</label>
                       </div>
                     </div>
                   </div>
@@ -1065,36 +739,13 @@ const Create = () => {
                       }}
                     />
                     
-                    {/* AI Photo Validation Status */}
-                    {photoValidating && (
-                      <div className="mt-2 d-flex align-items-center gap-2" style={{ color: "#2196F3", fontSize: "0.9rem" }}>
-                        <div className="spinner-border spinner-border-sm" role="status"></div>
-                        <span>AI is validating your photo...</span>
-                      </div>
-                    )}
-                    
-                    {photoValidation && !photoValidating && (
-                      <div className={`mt-2 d-flex align-items-center gap-2 p-2 rounded`} 
-                           style={{ 
-                             backgroundColor: photoValidation.isValid ? '#E8F5E9' : '#FFF3E0',
-                             color: photoValidation.isValid ? '#2E7D32' : '#F57C00',
-                             fontSize: '0.9rem'
-                           }}>
-                        {photoValidation.isValid ? <FiCheckCircle /> : <FiEye />}
-                        <span>
-                          {photoValidation.message} 
-                          {photoValidation.confidence > 0 && ` (${photoValidation.confidence}% confidence)`}
-                        </span>
-                      </div>
-                    )}
-                    
                     {photoError && (
                       <div className="mt-2 d-flex align-items-center" style={{ color: "#D32F2F", fontSize: "0.9rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
                         <FiAlertCircle className="me-1" />{photoError}
                       </div>
                     )}
                     <small className="text-muted d-block mt-2" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                      Maximum file size: 5MB. AI will verify photo relevance.
+                      Maximum file size: 5MB.
                     </small>
                   </div>
 

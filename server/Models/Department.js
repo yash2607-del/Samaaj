@@ -9,7 +9,8 @@ const departmentSchema = new mongoose.Schema({
     category: {
         type: String,
         required: true,
-        enum: ['Electricity', 'Sanitation', 'Road', 'Public Works', 'Water', 'Public Safety'],
+        // Align categories with complaint model and client UI
+        enum: ['Sanitization', 'Cleanliness', 'Electricity', 'Road', 'Water', 'Public Safety', 'Public Works', 'Other'],
         trim: true
     },
     subcategory: {
