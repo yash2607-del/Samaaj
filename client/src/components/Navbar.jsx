@@ -111,7 +111,7 @@ const LogoutButton = () => {
   const navigate = useNavigate();
   const handleLogout = async () => {
     try {
-      await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/logout`, { method: 'POST', credentials: 'include' });
+      await fetch(`${import.meta.env.VITE_BACKEND_URL}/logout`, { method: 'POST', credentials: 'include' });
     } catch (e) {}
     localStorage.removeItem('token');
     localStorage.removeItem('user');

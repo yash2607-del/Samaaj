@@ -17,7 +17,7 @@ function Login() {
     setLoading(true);
     
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/login`, { email, password }, { withCredentials: true });
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/login`, { email, password }, { withCredentials: true });
       
       // Store token and user info
       if (res.data.token) localStorage.setItem('token', res.data.token);

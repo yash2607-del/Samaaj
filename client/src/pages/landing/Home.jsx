@@ -15,7 +15,7 @@ const Home = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/logout`, { method: 'POST', credentials: 'include' });
+      await fetch(`${import.meta.env.VITE_BACKEND_URL}/logout`, { method: 'POST', credentials: 'include' });
     } catch (e) {
       // ignore
     }
