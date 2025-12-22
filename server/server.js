@@ -16,21 +16,19 @@ dotenv.config();
 
 const app = express();
 
-/* ===============================
-   🔐 CORS CONFIG (FIXED)
-================================ */
 const FRONTEND_URL = process.env.FRONTEND_URL;
 
 if (!FRONTEND_URL) {
   throw new Error('FRONTEND_URL is missing in environment variables');
 }
 
+
 app.use(cors({
   origin: FRONTEND_URL,
   credentials: true
 }));
 
-// Handle preflight requests
+// ✅ PRE-FLIGHT (THIS WAS MISSING)
 app.options('*', cors({
   origin: FRONTEND_URL,
   credentials: true
@@ -56,7 +54,11 @@ mongoose.connect(MONGO_URI)
   });
 
 /* ===============================
-   🍪 SESSION CONFIG (FIXED)
+   🍪 SESSION CONFIG (CORRECT)
+================================
+   Cross-site cookies REQUIRE:
+   - secure: true
+   - sameSite: 'none'
 ================================ */
 app.use(session({
   name: 'samaaj_session',
@@ -69,13 +71,15 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    secure: true,        // REQUIRED (HTTPS)
-    sameSite: 'none',    // REQUIRED (cross-site)
-    maxAge: 1000 * 60 * 60 * 24 // 1 day
+    secure: true,
+    sameSite: 'none',
+    maxAge: 1000 * 60 * 60 * 24
   }
 }));
 
-
+/* ===============================
+   🚏 ROUTES
+================================ */
 app.use('/', authRouter);
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/track', trackRouter);
