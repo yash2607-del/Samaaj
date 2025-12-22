@@ -16,17 +16,15 @@ dotenv.config();
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const allowedOrigins = [
-  FRONTEND_URL,
+  process.env.FRONTEND_URL,
   'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000'
+  'http://127.0.0.1:5173'
 ];
+
 app.use(cors({
   origin: function(origin, callback) {
-    // allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn('Blocked CORS request from origin:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -35,17 +33,14 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-// Handle preflight requests for all routes
+// Preflight handler for all routes
 app.options('*', cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Set-Cookie']
+  credentials: true
 }));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
