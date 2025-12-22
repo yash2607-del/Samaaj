@@ -48,7 +48,7 @@ const normalizePhotoUrl = (photoPath) => {
   if (!photoPath) return "";
   if (/^https?:\/\//i.test(photoPath)) return photoPath;
   const trimmed = photoPath.startsWith("/") ? photoPath.slice(1) : photoPath;
-  return `${import.meta.env.VITE_BACKEND_URL}/${trimmed}`;
+  return `${import.meta.env.VITE_API_BASE_URL}/${trimmed}`;
 };
 
 const formatDate = (value) => {
