@@ -71,7 +71,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/notifications', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/notifications`, {
           credentials: 'include'
         });
         if (response.ok) {

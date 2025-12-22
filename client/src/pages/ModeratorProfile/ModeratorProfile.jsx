@@ -24,7 +24,7 @@ const ModeratorProfile = () => {
 
     setLoading(true);
     axios
-      .get("http://localhost:3000/profile", {
+      .get(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -40,7 +40,7 @@ const ModeratorProfile = () => {
             setDepartmentInfo(dept);
           } else if (typeof dept === 'string') {
             // Could be ID or name - try to fetch by ID first
-            return axios.get(`http://localhost:3000/api/complaints/departments/${dept}`)
+            return axios.get(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/complaints/departments/${dept}`)
               .catch(() => {
                 // If fetch fails, assume it's already the name
                 setDepartmentInfo({ name: dept });

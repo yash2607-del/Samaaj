@@ -48,7 +48,7 @@ const normalizePhotoUrl = (photoPath) => {
   if (!photoPath) return "";
   if (/^https?:\/\//i.test(photoPath)) return photoPath;
   const trimmed = photoPath.startsWith("/") ? photoPath.slice(1) : photoPath;
-  return `http://localhost:3000/${trimmed}`;
+  return `${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/${trimmed}`;
 };
 
 const formatDate = (value) => {

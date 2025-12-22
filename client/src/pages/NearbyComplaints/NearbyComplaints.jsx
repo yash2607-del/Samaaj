@@ -83,9 +83,9 @@ const NearbyComplaints = () => {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/notifications', {
-          credentials: 'include'
-        });
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/notifications`, {
+            credentials: 'include'
+          });
         if (response.ok) {
           const data = await response.json();
           setUnreadCount(data.unreadCount || 0);
@@ -720,7 +720,7 @@ const NearbyComplaints = () => {
                 {selectedComplaint.photo && (
                   <div className="mb-4">
                     <img
-                      src={`http://localhost:3000/${selectedComplaint.photo}`}
+                      src={`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/${selectedComplaint.photo}`}
                       alt={selectedComplaint.title}
                       className="img-fluid rounded-3"
                       style={{ 

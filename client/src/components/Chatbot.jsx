@@ -29,7 +29,7 @@ export default function Chatbot() {
       try {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const resp = await fetch('http://localhost:3000/profile', { headers, credentials: 'include' });
+        const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/profile`, { headers, credentials: 'include' });
         if (!mounted) return;
         if (!resp.ok) return;
         const data = await resp.json();
@@ -65,7 +65,7 @@ export default function Chatbot() {
     // send to server-side chatbot responder
     (async () => {
       try {
-        const resp = await fetch('http://localhost:3000/api/chatbot/respond', {
+        const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/chatbot/respond`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: cleaned, role: profile?.role })
