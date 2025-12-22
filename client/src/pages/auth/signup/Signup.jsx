@@ -25,7 +25,7 @@ function Signup() {
     let mounted = true;
     const fetchDepartments = async () => {
       try {
-        const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/complaints/departments`);
+        const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/complaints/departments`);
         if (!mounted) return;
         if (!resp.ok) return;
         const data = await resp.json();
@@ -63,7 +63,7 @@ function Signup() {
 
     setLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/signup`, {
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/signup`, {
         role,
         department,
         name: fullName,

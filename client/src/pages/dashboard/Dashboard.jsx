@@ -71,7 +71,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notifications`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/notifications`, {
           credentials: 'include'
         });
         if (response.ok) {
