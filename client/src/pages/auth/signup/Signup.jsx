@@ -25,7 +25,7 @@ function Signup() {
     let mounted = true;
     const fetchDepartments = async () => {
       try {
-        const resp = await fetch('http://localhost:3000/api/complaints/departments');
+        const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/complaints/departments`);
         if (!mounted) return;
         if (!resp.ok) return;
         const data = await resp.json();
@@ -63,7 +63,7 @@ function Signup() {
 
     setLoading(true);
     try {
-      await axios.post("http://localhost:3000/signup", {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/signup`, {
         role,
         department,
         name: fullName,

@@ -17,7 +17,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/notifications', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/notifications`, {
         credentials: 'include'
       });
       
@@ -35,7 +35,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         credentials: 'include'
       });
@@ -55,7 +55,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/notifications/mark-all-read', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/notifications/mark-all-read`, {
         method: 'PUT',
         credentials: 'include'
       });

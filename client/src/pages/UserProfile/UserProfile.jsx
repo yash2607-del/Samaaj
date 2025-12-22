@@ -21,7 +21,7 @@ const UserProfile = () => {
           return;
         }
 
-        const response = await axios.get("http://localhost:3000/profile", {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -29,7 +29,7 @@ const UserProfile = () => {
 
         // Fetch complaint count
         const userId = response.data.user.userId || response.data.user._id;
-        const complaintsResponse = await axios.get("http://localhost:3000/api/complaints", {
+        const complaintsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL || 'https://samaaj-backend-kj3r.onrender.com'}/api/complaints`, {
           params: { userId },
           headers: { Authorization: `Bearer ${token}` },
         });
