@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import fs from 'fs';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
@@ -16,21 +17,38 @@ dotenv.config();
 const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const ADDITIONAL_ALLOWED = (process.env.ADDITIONAL_ALLOWED || '').split(',').map(s => s.trim()).filter(Boolean);
+const normalizeOrigin = (value) => {
+  if (!value) return value;
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return String(value).trim().replace(/\/+$/, '');
+  }
+};
+
 const allowedOrigins = new Set([
-  FRONTEND_URL,
+  normalizeOrigin(FRONTEND_URL),
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000'
-]);
+].map(normalizeOrigin));
+
+// Include any additional origins provided via env var
+ADDITIONAL_ALLOWED.forEach(origin => allowedOrigins.add(normalizeOrigin(origin)));
+
+console.log('Allowed CORS origins:', Array.from(allowedOrigins));
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.has(origin)) return callback(null, true);
-    console.warn('Blocked CORS request from origin:', origin);
+    const normalized = normalizeOrigin(origin);
+    if (allowedOrigins.has(normalized)) return callback(null, true);
+    console.warn('Blocked CORS request from origin:', origin, 'normalized:', normalized);
     return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 204
 }));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
@@ -47,7 +65,10 @@ app.use((req, res, next) => {
   }
   next();
 });
-const uploadsDir = path.join(process.cwd(), 'uploads');
+// Determine uploads directory relative to this file to avoid issues when
+// the process CWD differs (e.g., deployed environments).
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 

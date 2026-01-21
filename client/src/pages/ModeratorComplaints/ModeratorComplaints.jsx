@@ -1,4 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import placeholderImg from "../../assets/img1.jpg";
+const _devLocalBackend = 'http://localhost:3000';
+const backendBase = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? _devLocalBackend : '');
+const fallbackPic2 = backendBase ? `${backendBase.replace(/\/$/, '')}/uploads/pic2.png` : '/uploads/pic2.png';
 import { toastError, toastSuccess } from "../../utils/toast";
 import { useNavigate } from "react-router-dom";
 import API from "../../api";
@@ -44,11 +48,20 @@ const statusMeta = {
   }
 };
 
+const KNOWN_MISSING = [
+  '1766417044499-919410092.png',
+  '1766329893553-386484364.png',
+  '1766422049649-436909165.png'
+];
+
 const normalizePhotoUrl = (photoPath) => {
-  if (!photoPath) return "";
+  if (!photoPath) return placeholderImg;
+  const filename = (photoPath || '').split('/').pop();
+  if (KNOWN_MISSING.includes(filename)) return fallbackPic2;
   if (/^https?:\/\//i.test(photoPath)) return photoPath;
   const trimmed = photoPath.startsWith("/") ? photoPath.slice(1) : photoPath;
-  return `${import.meta.env.VITE_BACKEND_URL}/${trimmed}`;
+  const base = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '';
+  return base ? `${base.replace(/\/$/, '')}/${trimmed}` : `/${trimmed}`;
 };
 
 const formatDate = (value) => {
@@ -90,9 +103,10 @@ export default function ModeratorComplaints() {
       const token = localStorage.getItem("token");
       
       const response = await API.get('/api/complaints/moderator-view');
-      
       const data = response.data.data || response.data;
       setComplaints(data);
+      // Debug: log photo paths to help diagnose missing images
+      try { console.debug('ModeratorComplaints fetched photo paths:', data.map(d => d.photo)); } catch(e) { /* ignore */ }
     } catch (err) {
       console.error("Failed to load complaints", err);
       setError(err.response?.data?.error || "Failed to load complaints");
@@ -374,11 +388,26 @@ export default function ModeratorComplaints() {
                       {complaint.photo && (
                         <div className="mb-3">
                           <img 
-                            src={normalizePhotoUrl(complaint.photo)} 
-                            alt="Complaint" 
-                            className="img-fluid rounded"
-                            style={{ maxHeight: "200px", objectFit: "cover", width: "100%" }}
-                          />
+                                src={normalizePhotoUrl(complaint.photo)} 
+                                alt="Complaint" 
+                                className="img-fluid rounded"
+                                style={{ maxHeight: "200px", objectFit: "cover", width: "100%" }}
+                                onError={(e) => {
+                                  try { e.currentTarget.onerror = null; } catch (_) {}
+                                  const tried = e.currentTarget.dataset.fallbackTried || '';
+                                  if (!tried.includes('img1')) {
+                                    e.currentTarget.dataset.fallbackTried = tried + ' img1';
+                                    e.currentTarget.src = placeholderImg;
+                                    return;
+                                  }
+                                  if (!tried.includes('img2')) {
+                                    e.currentTarget.dataset.fallbackTried = tried + ' img2';
+                                    e.currentTarget.src = fallbackPic2;
+                                    return;
+                                  }
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
                         </div>
                       )}
 

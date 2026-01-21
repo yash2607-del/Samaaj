@@ -8,7 +8,40 @@ export default defineConfig({
     host: 'localhost',
     port: 5173,
     strictPort: false,
-    // Enable HTTPS for geolocation API
-    // OR ensure localhost is recognized by browser
+    // Proxy API requests to the deployed backend during local development
+    proxy: {
+      '/login': {
+        target: 'https://samaaj-backend-kj3r.onrender.com',
+        changeOrigin: true,
+        secure: true
+      },
+      '/signup': {
+        target: 'https://samaaj-backend-kj3r.onrender.com',
+        changeOrigin: true,
+        secure: true
+      },
+      '/profile': {
+        target: 'https://samaaj-backend-kj3r.onrender.com',
+        changeOrigin: true,
+        secure: true
+      },
+      '/logout': {
+        target: 'https://samaaj-backend-kj3r.onrender.com',
+        changeOrigin: true,
+        secure: true
+      },
+      '/api': {
+        target: 'https://samaaj-backend-kj3r.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      },
+      '/uploads': {
+        // During local development prefer the local backend (PORT=3000)
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: true
+      }
+    }
   }
 })

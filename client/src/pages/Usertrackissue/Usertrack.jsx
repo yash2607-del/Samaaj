@@ -1,4 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import placeholderImg from "../../assets/img1.jpg";
+const _devLocalBackend = 'http://localhost:3000';
+const backendBase = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? _devLocalBackend : '');
+const fallbackPic2 = backendBase ? `${backendBase.replace(/\/$/, '')}/uploads/pic2.png` : '/uploads/pic2.png';
 import { useNavigate } from "react-router-dom";
 import API from "../../api.js";
 import CitizenSidebar from "../../components/CitizenSidebar";
@@ -40,11 +44,14 @@ const statusMeta = {
 };
 
 const normalizePhotoUrl = (photoPath) => {
-  if (!photoPath) return "";
+  if (!photoPath) return placeholderImg;
+  const filename = (photoPath || '').split('/').pop();
+  const KNOWN_MISSING = ['1766417044499-919410092.png','1766329893553-386484364.png','1766422049649-436909165.png'];
+  if (KNOWN_MISSING.includes(filename)) return fallbackPic2;
   if (/^https?:\/\//i.test(photoPath)) return photoPath;
   const trimmed = photoPath.startsWith("/") ? photoPath.slice(1) : photoPath;
   const base = API.defaults.baseURL || "";
-  return base ? `${base}/${trimmed}` : `/${trimmed}`;
+  return base ? `${base.replace(/\/$/, '')}/${trimmed}` : `/${trimmed}`;
 };
 
 const formatDate = (value) => {
@@ -295,6 +302,21 @@ export default function Usertrack() {
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
                           onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                          onError={(e) => {
+                            try { e.currentTarget.onerror = null; } catch (_) {}
+                            const tried = e.currentTarget.dataset.fallbackTried || '';
+                            if (!tried.includes('img1')) {
+                              e.currentTarget.dataset.fallbackTried = tried + ' img1';
+                              e.currentTarget.src = placeholderImg;
+                              return;
+                            }
+                            if (!tried.includes('img2')) {
+                              e.currentTarget.dataset.fallbackTried = tried + ' img2';
+                              e.currentTarget.src = fallbackPic2;
+                              return;
+                            }
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                         <div 
                           className="position-absolute top-0 end-0 m-3"
@@ -411,6 +433,21 @@ export default function Usertrack() {
                         alt={selectedIssue.title}
                         className="img-fluid rounded-3"
                         style={{ width: "100%", maxHeight: "350px", objectFit: "cover" }}
+                        onError={(e) => {
+                          try { e.currentTarget.onerror = null; } catch (_) {}
+                          const tried = e.currentTarget.dataset.fallbackTried || '';
+                          if (!tried.includes('img1')) {
+                            e.currentTarget.dataset.fallbackTried = tried + ' img1';
+                            e.currentTarget.src = placeholderImg;
+                            return;
+                          }
+                          if (!tried.includes('img2')) {
+                            e.currentTarget.dataset.fallbackTried = tried + ' img2';
+                            e.currentTarget.src = img2;
+                            return;
+                          }
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
                     </div>
                   )}

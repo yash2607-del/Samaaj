@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import Complaint from '../Models/complaint.js';
 import Moderator from '../Models/Moderator.js';
 import Department from '../Models/Department.js';
@@ -16,6 +18,34 @@ const getDepartments = async (req, res) => {
   } catch (error) {
     console.error("Error fetching departments:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Helper: remove/clear photo fields that don't exist on disk so clients don't request 404s
+const sanitizePhotoFields = (items) => {
+  try {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const serverRoot = path.join(__dirname, '..');
+    const uploadsDir = path.join(serverRoot, 'uploads');
+
+    const list = Array.isArray(items) ? items : [items];
+    for (const it of list) {
+      try {
+        if (!it || !it.photo) continue;
+        let p = String(it.photo || '').trim().replace(/\\/g, '/');
+        if (!p) { it.photo = ''; continue; }
+        if (p.startsWith('/')) p = p.slice(1);
+        const full = path.join(serverRoot, p);
+        if (!fs.existsSync(full)) {
+          it.photo = '';
+        }
+      } catch (e) {
+        // ignore per-item errors
+      }
+    }
+    return items;
+  } catch (e) {
+    return items;
   }
 };
 
@@ -98,11 +128,12 @@ const listComplaints = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized role' });
     }
 
-    const complaints = await Complaint.find(filter)
+    let complaints = await Complaint.find(filter)
       .populate('department', 'name')
       .sort({ createdAt: -1 })
       .lean();
 
+    complaints = sanitizePhotoFields(complaints);
     res.json({ data: complaints });
   } catch (error) {
     console.error('Error fetching complaints:', error);
@@ -205,6 +236,16 @@ const moderatorView = async (req, res) => {
         complaints = await Complaint.find({ department: resolvedDeptId }).populate('department').sort({ createdAt: -1 });
       }
 
+      // Debug: log photo paths returned to moderators to diagnose missing images
+      try {
+        console.debug('moderatorView: returning complaints count=', (complaints || []).length);
+        console.debug('moderatorView: photo paths sample=', (complaints || []).slice(0,20).map(c => c.photo));
+      } catch (e) {
+        /* ignore logging errors */
+      }
+
+      // sanitize photos before sending
+      complaints = sanitizePhotoFields(complaints);
       res.json(complaints);
   } catch (error) {
     console.error('Error fetching moderator complaints:', error);
@@ -346,7 +387,8 @@ const updateStatus = async (req, res) => {
       }
     }
 
-    const populated = await Complaint.findById(complaint._id).populate('assignedTo', 'name email').populate('department', 'name');
+    const populated = await Complaint.findById(complaint._id).populate('assignedTo', 'name email').populate('department', 'name').lean();
+    sanitizePhotoFields(populated);
     res.json({ message: "Status updated successfully", complaint: populated });
   } catch (error) {
     console.error("Error updating complaint status:", error);

@@ -1,6 +1,7 @@
 import express from "express";
 import multer from 'multer';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import complaintsController from '../controllers/complaintsController.js';
 import auth from "../middleware/auth.js";
 import requireRole from '../middleware/roles.js';
@@ -15,7 +16,10 @@ router.use((req, res, next) => {
   next();
 });
 
-const uploadsDir = path.join(process.cwd(), 'uploads');
+// Ensure uploads directory is the same directory served by the server (relative to server folder)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const serverRoot = path.join(__dirname, '..');
+const uploadsDir = path.join(serverRoot, 'uploads');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
