@@ -4,6 +4,10 @@ import { filterByCategory, filterByStatus, searchComplaints } from "../../utils/
 import CitizenSidebar from "../../components/CitizenSidebar";
 import NotificationPanel from "../../components/NotificationPanel";
 import API from "../../api.js";
+import placeholderImg from "../../assets/img1.jpg";
+const _devLocalBackend = 'http://localhost:3000';
+const backendBase = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? _devLocalBackend : '');
+const fallbackPic2 = backendBase ? `${backendBase.replace(/\/$/, '')}/uploads/pic2.png` : '/uploads/pic2.png';
 import { 
   FiCheckCircle, FiClock, 
   FiSearch, FiFilter, FiAlertCircle, 
@@ -717,21 +721,42 @@ const NearbyComplaints = () => {
                   </p>
                 )}
 
-                {selectedComplaint.photo && (
-                  <div className="mb-4">
-                    <img
-                      src={`${import.meta.env.VITE_BACKEND_URL}/${selectedComplaint.photo}`}
-                      alt={selectedComplaint.title}
-                      className="img-fluid rounded-3"
-                      style={{ 
-                        maxHeight: "300px", 
-                        width: "100%", 
-                        objectFit: "cover",
-                        border: "2px solid #f0f0f0"
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="mb-4">
+                  <img
+                    src={
+                        (function(photo){
+                          if (!photo) return placeholderImg;
+                          const filename = (photo||'').split('/').pop();
+                          const KNOWN_MISSING = ['1766417044499-919410092.png','1766329893553-386484364.png','1766422049649-436909165.png'];
+                          if (KNOWN_MISSING.includes(filename)) return fallbackPic2;
+                          return `${(import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')}/${(photo || '').replace(/^\/+/, '')}`;
+                        })(selectedComplaint?.photo)
+                      }
+                    alt={selectedComplaint?.title || 'Complaint'}
+                    className="img-fluid rounded-3"
+                    style={{ 
+                      maxHeight: "300px", 
+                      width: "100%", 
+                      objectFit: "cover",
+                      border: "2px solid #f0f0f0"
+                    }}
+                    onError={(e) => {
+                      try { e.currentTarget.onerror = null; } catch (_) {}
+                      const tried = e.currentTarget.dataset.fallbackTried || '';
+                      if (!tried.includes('img1')) {
+                        e.currentTarget.dataset.fallbackTried = tried + ' img1';
+                        e.currentTarget.src = placeholderImg;
+                        return;
+                      }
+                      if (!tried.includes('img2')) {
+                        e.currentTarget.dataset.fallbackTried = tried + ' img2';
+                        e.currentTarget.src = fallbackPic2;
+                        return;
+                      }
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
 
                 <div className="d-flex align-items-center gap-2 mb-4">
                   <button
