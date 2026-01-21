@@ -1,9 +1,9 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { User, Citizen, Moderator } from '../Models/User.js';
-import LegacyModerator from '../Models/Moderator.js';
-import Department from '../Models/Department.js';
+import { User, Citizen, Moderator } from '../models/User.js';
+import LegacyModerator from '../models/Moderator.js';
+import Department from '../models/Department.js';
 import resolveModeratorDept from '../utils/resolveModeratorDept.js';
 
 const signup = async (req, res) => {

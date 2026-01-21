@@ -6,7 +6,7 @@ const notificationSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: { 
       type: String, 
-      enum: ["status_change", "community_validation", "assignment"],
+      enum: ["status_change", "community_validation", "assignment", "new_complaint"],
       required: true 
     },
     title: { type: String, required: true },
@@ -17,7 +17,8 @@ const notificationSchema = new Schema(
       oldStatus: String,
       newStatus: String,
       validatorName: String,
-      moderatorName: String
+      moderatorName: String,
+      area: String
     }
   },
   { timestamps: true, versionKey: false }

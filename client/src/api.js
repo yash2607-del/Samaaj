@@ -1,9 +1,9 @@
 import axios from "axios";
 
-// Use relative base URL during local development so Vite proxy can forward requests.
+// Prefer explicit API base; fallback to backend base. In dev, allow empty baseURL for proxying.
 const isDev = import.meta.env.DEV === true;
-const configuredBackend = import.meta.env.VITE_BACKEND_URL || '';
-const baseURL = isDev ? '' : configuredBackend;
+const configuredBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+const baseURL = configuredBase || (isDev ? '' : '');
 
 const API = axios.create({
   baseURL,

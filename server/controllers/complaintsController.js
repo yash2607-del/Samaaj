@@ -2,12 +2,13 @@ import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import Complaint from '../Models/complaint.js';
-import Moderator from '../Models/Moderator.js';
-import Department from '../Models/Department.js';
-import { Citizen, Moderator as ModeratorUser } from '../Models/User.js';
+import Complaint from '../models/complaint.js';
+import Moderator from '../models/Moderator.js';
+import Department from '../models/Department.js';
+import { Citizen, Moderator as ModeratorUser } from '../models/User.js';
 import resolveModeratorDept from '../utils/resolveModeratorDept.js';
-import Notification from '../Models/Notification.js';
+import Notification from '../models/Notification.js';
+import notifyOnComplaintCreate from '../utils/notifyOnComplaintCreate.js';
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -486,14 +487,14 @@ const createComplaint = async (req, res) => {
       departmentUsed = String(req.user.department);
     }
 
-    if (!title || !category || !description || !location || !departmentUsed) return res.status(400).json({ error: "All fields are required (ensure department is provided or moderator creating complaint)" });
+    if (!title || !category || !location || !departmentUsed) return res.status(400).json({ error: "All fields are required (ensure department is provided)" });
 
     if (userId && !mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ error: "Invalid user" });
 
     const departmentExists = await Department.findById(departmentUsed);
     if (!departmentExists) return res.status(400).json({ error: "Invalid department" });
 
-    const photoPath = req.file ? ("/" + path.relative(process.cwd(), req.file.path).replace(/\\\\/g, '/').replace(/^\/+/, '')) : "";
+    const photoPath = req.file ? `/uploads/${req.file.filename}` : "";
 
     const complaint = new Complaint({
       title,
@@ -512,6 +513,9 @@ const createComplaint = async (req, res) => {
     });
 
     await complaint.save();
+
+    // Best-effort notifications: owner + moderators + district citizens
+    await notifyOnComplaintCreate({ complaint });
     res.status(201).json(complaint);
   } catch (error) {
     console.error("Error creating complaint:", error);

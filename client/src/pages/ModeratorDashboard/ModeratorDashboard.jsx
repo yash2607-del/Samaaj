@@ -31,7 +31,7 @@ const ModeratorDashboard = () => {
   const fetchComplaints = (token) => {
     setLoading(true);
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/complaints/`, {
+      .get(`${import.meta.env.VITE_API_BASE_URL}/api/complaints/`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -74,7 +74,7 @@ const ModeratorDashboard = () => {
       const token = localStorage.getItem("token");
       console.log('Updating status:', { complaintId, newStatus, userEmail: user.email });
 
-      const response = await axios.patch(`${import.meta.env.VITE_BACKEND_URL}/api/complaints/update-status/${complaintId}`, {
+      const response = await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/complaints/update-status/${complaintId}`, {
         status: newStatus,
         moderatorEmail: user.email
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -94,7 +94,7 @@ const ModeratorDashboard = () => {
     try {
       setUpdating(complaintId);
       const token = localStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/complaints/assign/${complaintId}`, {
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/complaints/assign/${complaintId}`, {
         moderatorEmail: user.email
       }, { headers: { Authorization: `Bearer ${token}` } });
       fetchComplaints(token);
@@ -123,7 +123,7 @@ const ModeratorDashboard = () => {
 
     // Fetch moderator profile to get department info (non-blocking)
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/profile`, {
+      .get(`${import.meta.env.VITE_API_BASE_URL}/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -136,7 +136,7 @@ const ModeratorDashboard = () => {
             setModeratorDept(deptData.name);
           } else if (typeof deptData === 'string') {
             // Fetch departments list to map ID to name
-            axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/complaints/departments`)
+            axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/complaints/departments`)
               .then(deptRes => {
                 const dept = deptRes.data.find(d => d._id === deptData);
                 setModeratorDept(dept ? dept.name : deptData);
@@ -154,7 +154,7 @@ const ModeratorDashboard = () => {
       });
 
     // Fetch complaints using moderator-view (department-scoped)
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/complaints/moderator-view`, { headers: { Authorization: `Bearer ${token}` } })
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/complaints/moderator-view`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
         const data = res.data.data || res.data || [];
         setComplaints(data);
