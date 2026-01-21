@@ -25,7 +25,7 @@ async function main(){
   }
 
   // Dynamically import the Complaint model
-  const { default: Complaint } = await import('../Models/complaint.js');
+  const { default: Complaint } = await import('../models/complaint.js');
 
   const complaints = await Complaint.find({ photo: { $exists: true, $ne: '' } }).lean();
   console.log('Total complaints with photo field:', complaints.length);

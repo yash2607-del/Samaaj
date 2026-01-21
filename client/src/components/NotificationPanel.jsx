@@ -17,7 +17,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notifications`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/notifications`, {
         credentials: 'include'
       });
       
@@ -35,7 +35,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         credentials: 'include'
       });
@@ -55,7 +55,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notifications/mark-all-read`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/notifications/mark-all-read`, {
         method: 'PUT',
         credentials: 'include'
       });
@@ -74,9 +74,20 @@ const NotificationPanel = ({ isOpen, onClose }) => {
   const handleNotificationClick = async (notification) => {
     await markAsRead(notification._id);
     
-    // Navigate to track issue page with this complaint
-    if (notification.complaintId) {
-      navigate('/track');
+    // Navigate based on role
+    try {
+      const storedUser = localStorage.getItem('user');
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const role = String(user?.role || '').toLowerCase();
+
+      if (role === 'moderator') {
+        navigate('/moderator-complaints');
+      } else {
+        navigate('/track-issue');
+      }
+      onClose();
+    } catch (e) {
+      navigate('/track-issue');
       onClose();
     }
   };
@@ -128,6 +139,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
                     {notification.type === 'status_change' && '🔔'}
                     {notification.type === 'community_validation' && '👍'}
                     {notification.type === 'assignment' && '📌'}
+                    {notification.type === 'new_complaint' && '🆕'}
                   </div>
                   <div className="notification-content">
                     <h4>{notification.title}</h4>

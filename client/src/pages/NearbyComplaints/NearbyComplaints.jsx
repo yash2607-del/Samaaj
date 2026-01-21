@@ -87,7 +87,7 @@ const NearbyComplaints = () => {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notifications`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/notifications`, {
             credentials: 'include'
           });
         if (response.ok) {
@@ -724,19 +724,20 @@ const NearbyComplaints = () => {
                 <div className="mb-4">
                   <img
                     src={
-                        (function(photo){
-                          if (!photo) return placeholderImg;
-                          const filename = (photo||'').split('/').pop();
-                          const KNOWN_MISSING = ['1766417044499-919410092.png','1766329893553-386484364.png','1766422049649-436909165.png'];
-                          if (KNOWN_MISSING.includes(filename)) return fallbackPic2;
-                          return `${(import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')}/${(photo || '').replace(/^\/+/, '')}`;
-                        })(selectedComplaint?.photo)
-                      }
+                      (function(photo){
+                        if (!photo) return placeholderImg;
+                        const filename = (photo||'').split('/').pop();
+                        const KNOWN_MISSING = ['1766417044499-919410092.png','1766329893553-386484364.png','1766422049649-436909165.png'];
+                        if (KNOWN_MISSING.includes(filename)) return fallbackPic2;
+                        const base = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+                        return base ? `${base}/${(photo || '').replace(/^\/+/, '')}` : `/${(photo || '').replace(/^\/+/, '')}`;
+                      })(selectedComplaint?.photo)
+                    }
                     alt={selectedComplaint?.title || 'Complaint'}
                     className="img-fluid rounded-3"
-                    style={{ 
-                      maxHeight: "300px", 
-                      width: "100%", 
+                    style={{
+                      maxHeight: "300px",
+                      width: "100%",
                       objectFit: "cover",
                       border: "2px solid #f0f0f0"
                     }}
