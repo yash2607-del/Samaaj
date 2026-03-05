@@ -18,6 +18,8 @@ const complaintSchema = new Schema(
     state: { type: String, default: "" },
     pincode: { type: String, default: "" },
     photo: { type: String, default: "" },
+    mlPrediction: { type: String, default: "" },
+    mlConfidence: { type: Number, min: 0, max: 1, default: null },
     status: {
       type: String,
       enum: ["Pending","In Progress","Resolved","Rejected"],

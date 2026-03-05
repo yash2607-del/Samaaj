@@ -14,6 +14,8 @@ import moderatorRouter from './routes/moderator.js';
 import notificationsRouter from './routes/notifications.js';
 import authRouter from './routes/auth.js';
 import chatbotRouter from './routes/chatbot.js';
+import reportRouter from './routes/report.js';
+import geocodeRouter from './routes/geocode.js';
 
 dotenv.config();
 
@@ -131,6 +133,8 @@ app.use('/api/track', trackRouter);
 app.use('/api/moderators', moderatorRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/chatbot', chatbotRouter);
+app.use('/api/report', reportRouter);
+app.use('/api/geocode', geocodeRouter);
 
 /* ===============================
    🚀 START SERVER
