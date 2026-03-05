@@ -23,6 +23,8 @@ const Create = () => {
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoError, setPhotoError] = useState("");
+  const [photoValidationMsg, setPhotoValidationMsg] = useState("");
+  const [verifyingPhoto, setVerifyingPhoto] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -33,7 +35,7 @@ const Create = () => {
       setPhoto(null);
       setPhotoPreview(null);
       setPhotoError("");
-      setPhotoValidation(null);
+      setPhotoValidationMsg("");
       return;
     }
 
@@ -41,6 +43,7 @@ const Create = () => {
       setPhotoError("Only image files are allowed.");
       setPhoto(null);
       setPhotoPreview(null);
+      setPhotoValidationMsg("");
       return;
     }
 
@@ -48,11 +51,13 @@ const Create = () => {
       setPhotoError("File size must be less than 5MB.");
       setPhoto(null);
       setPhotoPreview(null);
+      setPhotoValidationMsg("");
       return;
     }
 
     setPhoto(file);
     setPhotoError("");
+    setPhotoValidationMsg("");
     setPhotoPreview(URL.createObjectURL(file));
 
     // No AI validation — only basic client-side checks
@@ -69,14 +74,14 @@ const Create = () => {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
+    const resolvePosition = async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          // Use OpenStreetMap Nominatim reverse geocoding
-          const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
-          if (!resp.ok) throw new Error('Reverse geocoding failed');
-          const data = await resp.json();
+          const resp = await API.get('/api/geocode/reverse', {
+            params: { lat: latitude, lon: longitude }
+          });
+          const data = resp?.data;
+          if (!data) throw new Error('Reverse geocoding failed');
           const addr = data.address || {};
           const addressData = {
             street: addr.road ? `${addr.house_number ? addr.house_number + ' ' : ''}${addr.road}` : (addr.neighbourhood || addr.suburb || ''),
@@ -103,24 +108,38 @@ const Create = () => {
         } finally {
           setAutoDetectLoading(false);
         }
-      },
-      (error) => {
-        setAutoDetectLoading(false);
-        console.error('Geolocation error:', error);
-        switch (error.code) {
-          case 1:
-            setErrorMsg("Location access denied. To enable:\n• Click the location/lock icon in your browser's address bar\n• Select 'Allow' for location\n• Refresh the page and try again");
-            break;
-          case 2:
-            setErrorMsg("Location information unavailable. Please:\n• Check if location services are enabled on your device\n• Ensure you have GPS/WiFi enabled\n• Try again in a few seconds");
-            break;
-          case 3:
-            setErrorMsg("Location request timed out. This might be due to:\n• Weak GPS signal\n• Slow internet connection\n• Please try again");
-            break;
-          default:
-            setErrorMsg('Unable to retrieve your location. Please enter location manually or try again.');
-        }
-      },
+    };
+
+    const onPositionError = (error, isRetry) => {
+      if (!isRetry && error?.code === 3) {
+        navigator.geolocation.getCurrentPosition(
+          resolvePosition,
+          (retryError) => onPositionError(retryError, true),
+          { enableHighAccuracy: false, timeout: 30000, maximumAge: 120000 }
+        );
+        return;
+      }
+
+      setAutoDetectLoading(false);
+      console.error('Geolocation error:', error);
+      switch (error.code) {
+        case 1:
+          setErrorMsg("Location access denied. To enable:\n• Click the location/lock icon in your browser's address bar\n• Select 'Allow' for location\n• Refresh the page and try again");
+          break;
+        case 2:
+          setErrorMsg("Location information unavailable. Please:\n• Check if location services are enabled on your device\n• Ensure you have GPS/WiFi enabled\n• Try again in a few seconds");
+          break;
+        case 3:
+          setErrorMsg("Location request timed out. Please try auto-detect again in open sky or enter address manually.");
+          break;
+        default:
+          setErrorMsg('Unable to retrieve your location. Please enter location manually or try again.');
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      resolvePosition,
+      (error) => onPositionError(error, false),
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
@@ -346,6 +365,43 @@ const Create = () => {
 
     try {
       setSubmitting(true);
+      setVerifyingPhoto(true);
+      setPhotoValidationMsg("Verifying image with ML model...");
+
+      const validateData = new FormData();
+      validateData.append("category", category);
+      validateData.append("title", title.trim());
+      validateData.append("description", description.trim());
+      validateData.append("photo", photo);
+
+      try {
+        const validationResponse = await API.post("/api/complaints/validate-image", validateData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+
+        if (validationResponse?.data?.valid === false) {
+          setPhotoValidationMsg("");
+          setErrorMsg(validationResponse?.data?.message || "Image does not match complaint context.");
+          return;
+        }
+      } catch (validationError) {
+        if (validationError?.response?.status === 404) {
+          setPhotoValidationMsg("");
+          setErrorMsg("Image validation endpoint is missing on backend. Deploy latest server changes and try again.");
+          return;
+        }
+
+        if (validationError?.response?.status === 400) {
+          setPhotoValidationMsg("");
+          setErrorMsg(validationError?.response?.data?.error || validationError?.response?.data?.message || "Image does not match complaint context.");
+          return;
+        }
+
+        throw validationError;
+      }
+
+      setPhotoValidationMsg("Image verified. Submitting complaint...");
+
       const storedUser = localStorage.getItem("user");
       const parsedUser = storedUser ? JSON.parse(storedUser) : null;
       if (parsedUser?.id) formData.append("userId", parsedUser.id);
@@ -368,11 +424,18 @@ const Create = () => {
       setPhoto(null);
       setPhotoPreview(null);
       setPhotoError("");
+      setPhotoValidationMsg("");
       navigate("/dashboard");
     } catch (err) {
-      console.error(err);
-      setErrorMsg(err.response?.data?.error || "Submission failed. Try again.");
+      if (err?.response?.status >= 400 && err?.response?.status < 500) {
+        console.warn('Submission rejected:', err.response?.data?.error || err.response?.data?.message || err.message);
+      } else {
+        console.error(err);
+      }
+      setPhotoValidationMsg("");
+      setErrorMsg(err.response?.data?.error || err.response?.data?.message || err.message || "Submission failed. Try again.");
     } finally {
+      setVerifyingPhoto(false);
       setSubmitting(false);
     }
   };
@@ -744,6 +807,11 @@ const Create = () => {
                         <FiAlertCircle className="me-1" />{photoError}
                       </div>
                     )}
+                    {photoValidationMsg && (
+                      <div className="mt-2 d-flex align-items-center" style={{ color: "#2E7D32", fontSize: "0.9rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+                        <FiCheckCircle className="me-1" />{photoValidationMsg}
+                      </div>
+                    )}
                     <small className="text-muted d-block mt-2" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
                       Maximum file size: 5MB.
                     </small>
@@ -791,7 +859,7 @@ const Create = () => {
                     {submitting ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Processing Submission...
+                        {verifyingPhoto ? "Verifying image..." : "Processing Submission..."}
                       </>
                     ) : (
                       <>

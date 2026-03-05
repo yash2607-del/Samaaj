@@ -41,6 +41,7 @@ router.get('/moderator-by-category/:complaintId', auth, requireRole('Moderator')
 router.patch('/update-status/:complaintId', auth, requireRole('Moderator'), upload.single('actionPhoto'), complaintsController.updateStatus);
 router.post('/update-status/:complaintId', auth, requireRole('Moderator'), upload.single('actionPhoto'), complaintsController.updateStatus);
 router.post('/assign/:complaintId', auth, requireRole('Moderator'), complaintsController.assignComplaint);
+router.post('/validate-image', auth, upload.single('photo'), complaintsController.validateComplaintImage);
 router.post('/', auth, upload.single('photo'), complaintsController.createComplaint);
 router.post('/:complaintId/community-validate', auth, complaintsController.communityValidate);
 router.delete('/:complaintId/community-validate', auth, complaintsController.removeCommunityValidate);
