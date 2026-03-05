@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FiCheckCircle, FiMapPin, FiUsers, FiTrendingUp } from 'react-icons/fi';
@@ -8,10 +8,12 @@ import img3 from '../../assets/img3.jpg';
 import img4 from '../../assets/img4.jpg';
 
 const Landing = () => {
+  const [isNavOpen, setIsNavOpen] = useState(false);
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       {/* Minimalist Navbar */}
-      <nav className="navbar navbar-expand-lg bg-white sticky-top" style={{ padding: '1.2rem 0', borderBottom: '1px solid #e0e0e0' }}>
+      <nav className="navbar navbar-expand-lg bg-white sticky-top navbar-light" style={{ padding: '1.2rem 0', borderBottom: '1px solid #e0e0e0' }}>
         <div className="container">
           <a className="navbar-brand fw-bold" href="#home" style={{ fontSize: '1.4rem', color: '#FFB347', letterSpacing: '-0.5px' }}>
             Samaaj
@@ -19,16 +21,15 @@ const Landing = () => {
           <button
             className="navbar-toggler border-0"
             type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
             aria-controls="navbarNav"
-            aria-expanded="false"
+            aria-expanded={isNavOpen}
             aria-label="Toggle navigation"
             style={{ boxShadow: 'none' }}
+            onClick={() => setIsNavOpen(open => !open)}
           >
             <span className="navbar-toggler-icon"></span>
           </button>
-          <div className="collapse navbar-collapse" id="navbarNav">
+          <div className={`collapse navbar-collapse ${isNavOpen ? 'show' : ''}`} id="navbarNav">
             <ul className="navbar-nav mx-auto align-items-lg-center">
               <li className="nav-item">
                 <a 
@@ -37,6 +38,7 @@ const Landing = () => {
                   style={{ color: '#616161', fontWeight: '400', fontSize: '0.95rem', transition: 'transform 0.2s ease' }}
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                  onClick={() => setIsNavOpen(false)}
                 >
                   Features
                 </a>
@@ -48,6 +50,7 @@ const Landing = () => {
                   style={{ color: '#616161', fontWeight: '400', fontSize: '0.95rem', transition: 'transform 0.2s ease' }}
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                  onClick={() => setIsNavOpen(false)}
                 >
                   About
                 </a>
@@ -59,6 +62,7 @@ const Landing = () => {
                   style={{ color: '#616161', fontWeight: '400', fontSize: '0.95rem', transition: 'transform 0.2s ease' }}
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                  onClick={() => setIsNavOpen(false)}
                 >
                   Contact
                 </a>
@@ -79,6 +83,7 @@ const Landing = () => {
                 }}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                onClick={() => setIsNavOpen(false)}
               >
                 Login
               </Link>
@@ -96,6 +101,7 @@ const Landing = () => {
                 }}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                onClick={() => setIsNavOpen(false)}
               >
                 Sign up
               </Link>

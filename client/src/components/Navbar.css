@@ -61,6 +61,16 @@
     margin-top: 10px;
   }
 
+  /* Stack nav items vertically on small screens */
+  .navbar-custom .navbar-nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .navbar-custom .navbar-nav .nav-item {
+    margin: 6px 0;
+  }
+
   .hero-text h1 {
     font-size: 2rem;
   }
