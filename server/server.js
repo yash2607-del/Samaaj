@@ -42,7 +42,9 @@ const allowedOrigins = new Set([
   normalizeOrigin(FRONTEND_URL),
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://mysamaaj.vercel.app',
+  'https://samaaj-backend-kj3r.onrender.com'
 ].map(normalizeOrigin));
 
 // Include any additional origins provided via env var
@@ -52,6 +54,7 @@ console.log('Allowed CORS origins:', Array.from(allowedOrigins));
 
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, postman, etc.)
     if (!origin) return callback(null, true);
     const normalized = normalizeOrigin(origin);
     if (allowedOrigins.has(normalized)) return callback(null, true);
@@ -59,6 +62,9 @@ app.use(cors({
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
   optionsSuccessStatus: 204
 }));
 

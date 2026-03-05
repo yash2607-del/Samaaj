@@ -11,6 +11,11 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 a {
@@ -28,11 +33,25 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  overscroll-behavior: none;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: clamp(2em, 5vw, 3.2em);
   line-height: 1.1;
+}
+
+h2 {
+  font-size: clamp(1.5em, 4vw, 2.5em);
+}
+
+h3 {
+  font-size: clamp(1.2em, 3vw, 2em);
 }
 
 button {
@@ -45,6 +64,8 @@ button {
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
+  min-height: 44px;
+  min-width: 44px;
 }
 button:hover {
   border-color: #646cff;
@@ -52,6 +73,26 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  
+  button {
+    padding: 0.8em 1.4em;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  button {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 0.8em 1.4em;
+  }
 }
 
 @media (prefers-color-scheme: light) {
@@ -66,3 +107,4 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+

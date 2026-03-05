@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Maskable Icons for Samaaj</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #FFB347;
+            margin-bottom: 10px;
+        }
+        .info {
+            background: #fff3e0;
+            padding: 15px;
+            border-left: 4px solid #FFB347;
+            margin: 20px 0;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            margin: 10px;
+            border-radius: 8px;
+        }
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .preview-item {
+            text-align: center;
+        }
+        button {
+            background: #FFB347;
+            color: #1a1a1a;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #ff9f2e;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-left: 4px solid #2196F3;
+            margin: 20px 0;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Create Maskable Icons for Samaaj PWA</h1>
+        
+        <div class="info">
+            <strong>Why maskable icons?</strong><br>
+            Maskable icons prevent Chrome from adding its icon overlay on your app icon when installed on mobile devices. 
+            They include a "safe zone" (20% padding) to ensure your icon looks good on all devices.
+        </div>
+
+        <div class="instructions">
+            <strong>📝 Instructions:</strong>
+            <ol>
+                <li>Click "Generate Maskable Icons" below</li>
+                <li>Right-click each generated icon and save it</li>
+                <li>Replace the corresponding files in <code>client/public/icons/</code></li>
+                <li>Or save with "-maskable" suffix and update manifest.json paths</li>
+                <li>Deploy to Vercel and test on mobile</li>
+            </ol>
+        </div>
+
+        <button onclick="generateIcons()">Generate Maskable Icons</button>
+
+        <div class="preview-grid" id="preview"></div>
+    </div>
+
+    <script>
+        const sizes = [192, 512];
+        
+        function generateIcons() {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            
+            sizes.forEach(size => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // Background color
+                ctx.fillStyle = '#FFB347';
+                ctx.fillRect(0, 0, size, size);
+                
+                // Safe zone is 20% padding (40% total diameter reduction)
+                // So the actual icon should fit within 80% of the canvas
+                const safeZoneSize = size * 0.8;
+                const padding = size * 0.1;
+                
+                // Draw a circle for the safe zone guide (optional, for visualization)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(size/2, size/2, safeZoneSize/2, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Draw the "S" letter in the center
+                ctx.fillStyle = '#1a1a1a';
+                ctx.font = `bold ${size * 0.5}px Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('S', size/2, size/2);
+                
+                // Create preview
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                previewItem.innerHTML = `
+                    <canvas width="${size}" height="${size}" style="width: 120px; height: 120px;"></canvas>
+                    <div><strong>${size}x${size}</strong></div>
+                    <button onclick="downloadIcon(${size})">Download</button>
+                `;
+                
+                const previewCanvas = previewItem.querySelector('canvas');
+                const previewCtx = previewCanvas.getContext('2d');
+                previewCtx.drawImage(canvas, 0, 0);
+                
+                preview.appendChild(previewItem);
+                
+                // Store canvas for download
+                window[`canvas_${size}`] = canvas;
+            });
+        }
+        
+        function downloadIcon(size) {
+            const canvas = window[`canvas_${size}`];
+            const link = document.createElement('a');
+            link.download = `icon-${size}x${size}-maskable.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Auto-generate on load
+        window.addEventListener('load', generateIcons);
+    </script>
+</body>
+</html>
