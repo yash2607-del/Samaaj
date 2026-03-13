@@ -2,6 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiMessageSquare, FiX } from 'react-icons/fi';
 
+const DEFAULT_GREETING = 'Hi — I can help with submitting complaints, location, and photo guidance.';
+
+const readStoredUser = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawUser = window.localStorage.getItem('user');
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+const readStoredToken = () => {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem('token') || '';
+};
+
 const defaultResponses = [
   { q: /hi|hello|hey/i, a: 'Hello! How can I help you with your complaint today?' },
   { q: /how (do|can) i submit/i, a: 'Go to Submit Complaint, fill title, category, description, location and attach a photo.' },
@@ -14,8 +32,9 @@ const defaultResponses = [
 export default function Chatbot() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([{ from: 'bot', text: 'Hi — I can help with submitting complaints, location, and photo guidance.' }]);
-  const [profile, setProfile] = useState(null);
+  const [messages, setMessages] = useState([{ from: 'bot', text: DEFAULT_GREETING }]);
+  const [authState, setAuthState] = useState(() => ({ token: readStoredToken(), user: readStoredUser() }));
+  const [profile, setProfile] = useState(() => readStoredUser());
   const [input, setInput] = useState('');
   const listRef = useRef(null);
 
@@ -24,33 +43,71 @@ export default function Chatbot() {
   }, [messages, open]);
 
   useEffect(() => {
+    const syncAuthState = () => {
+      const nextUser = readStoredUser();
+      const nextToken = readStoredToken();
+
+      setAuthState({ token: nextToken, user: nextUser });
+
+      if (!nextToken && !nextUser) {
+        setProfile(null);
+        return;
+      }
+
+      if (nextUser) {
+        setProfile(prev => ({ ...(prev || {}), ...nextUser }));
+      }
+    };
+
+    syncAuthState();
+    window.addEventListener('authChanged', syncAuthState);
+    window.addEventListener('storage', syncAuthState);
+
+    return () => {
+      window.removeEventListener('authChanged', syncAuthState);
+      window.removeEventListener('storage', syncAuthState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const name = profile?.name || profile?.email;
+    const greeting = name
+      ? `Hi ${name} — I can help with submitting complaints, checking status, and photo guidance.`
+      : DEFAULT_GREETING;
+
+    setMessages(prev => {
+      if (!prev.length) return [{ from: 'bot', text: greeting }];
+      const next = [...prev];
+      next[0] = { from: 'bot', text: greeting };
+      return next;
+    });
+  }, [profile?.email, profile?.name]);
+
+  useEffect(() => {
     let mounted = true;
+
     async function fetchProfile() {
+      if (!authState.token && !authState.user) {
+        return;
+      }
+
       try {
-        const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const headers = authState.token ? { Authorization: `Bearer ${authState.token}` } : {};
         const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/profile`, { headers, credentials: 'include' });
-        if (!mounted) return;
-        if (!resp.ok) return;
+        if (!mounted || !resp.ok) return;
         const data = await resp.json();
         const u = data?.user || data;
         if (u) {
-          setProfile(u);
-          // personalize first bot message
-          const name = u.name || u.email || 'there';
-          setMessages(prev => {
-            const next = [...prev];
-            next[0] = { from: 'bot', text: `Hi ${name} — I can help with submitting complaints, checking status, and photo guidance.` };
-            return next;
-          });
+          setProfile(prev => ({ ...(prev || {}), ...u }));
         }
       } catch (e) {
         // ignore
       }
     }
+
     fetchProfile();
     return () => { mounted = false; };
-  }, []);
+  }, [authState.token, authState.user?.email, authState.user?.id, authState.user?.role]);
 
   const postBot = (text) => {
     const msg = { from: 'bot', text };

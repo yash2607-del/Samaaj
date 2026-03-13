@@ -26,6 +26,26 @@ if (!MONGO_URI) {
   process.exit(1);
 }
 
+let actualMongoUri = MONGO_URI;
+if (process.env.USE_MEMORY_DB === 'true' || actualMongoUri.includes('127.0.0.1')) {
+  try {
+    const { MongoMemoryServer } = await import('mongodb-memory-server');
+    const mongod = await MongoMemoryServer.create();
+    actualMongoUri = mongod.getUri();
+    console.log('✅ Started MongoDB Memory Server:', actualMongoUri);
+    
+    // Seed the memory DB in a separate process
+    const { execSync } = await import('child_process');
+    execSync('node seedDepartments.js', { 
+      stdio: 'inherit', 
+      env: { ...process.env, MONGO_URI: actualMongoUri } 
+    });
+  } catch (err) {
+    console.error('Failed to start memory server:', err);
+  }
+}
+
+
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const ADDITIONAL_ALLOWED = (process.env.ADDITIONAL_ALLOWED || '').split(',').map(s => s.trim()).filter(Boolean);
 const normalizeOrigin = (value) => {
@@ -88,7 +108,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 
 mongoose.set('strictQuery', false);
-mongoose.connect(MONGO_URI)
+mongoose.connect(actualMongoUri)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => {
     console.error('❌ MongoDB connection error:', err);
@@ -113,7 +133,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: MONGO_URI,
+    mongoUrl: actualMongoUri,
     collectionName: 'sessions'
   }),
   cookie: {

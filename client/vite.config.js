@@ -8,39 +8,39 @@ export default defineConfig({
     host: 'localhost',
     port: 5173,
     strictPort: false,
-    // Proxy API requests to the deployed backend during local development
+  // Proxy API requests to the local backend during local development
     proxy: {
       '/login': {
-        target: 'https://samaaj-backend-kj3r.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true
+        secure: false
       },
       '/signup': {
-        target: 'https://samaaj-backend-kj3r.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true
+        secure: false
       },
       '/profile': {
-        target: 'https://samaaj-backend-kj3r.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true
+        secure: false
       },
       '/logout': {
-        target: 'https://samaaj-backend-kj3r.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true
+        secure: false
       },
       '/api': {
-        target: 'https://samaaj-backend-kj3r.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api')
       },
       '/uploads': {
         // During local development prefer the local backend (PORT=3000)
         target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true
+        secure: false
       }
     }
   }

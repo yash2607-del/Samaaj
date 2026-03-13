@@ -1,0 +1,38 @@
+Found 315 files belonging to 6 classes.
+Found 80 files belonging to 6 classes.
+
+================================================================================
+Found 315 files belonging to 6 classes.
+Found 80 files belonging to 6 classes.
+Epoch 1/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m33s[0m 2s/step - accuracy: 0.1048 - loss: 3.1868 - val_accuracy: 0.1000 - val_loss: 2.8860
+Epoch 2/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 950ms/step - accuracy: 0.1460 - loss: 2.9732 - val_accuracy: 0.1625 - val_loss: 2.7774
+Epoch 3/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m8s[0m 850ms/step - accuracy: 0.1397 - loss: 2.8225 - val_accuracy: 0.2000 - val_loss: 2.6820
+Epoch 4/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m7s[0m 738ms/step - accuracy: 0.1556 - loss: 2.7430 - val_accuracy: 0.2250 - val_loss: 2.6000
+Epoch 5/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m8s[0m 758ms/step - accuracy: 0.1556 - loss: 2.7554 - val_accuracy: 0.2500 - val_loss: 2.5304
+Epoch 6/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m11s[0m 835ms/step - accuracy: 0.2095 - loss: 2.6307 - val_accuracy: 0.2500 - val_loss: 2.4752
+Epoch 7/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m8s[0m 855ms/step - accuracy: 0.2032 - loss: 2.5862 - val_accuracy: 0.2625 - val_loss: 2.4318
+Epoch 8/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m7s[0m 708ms/step - accuracy: 0.2032 - loss: 2.4497 - val_accuracy: 0.2625 - val_loss: 2.3927
+Epoch 9/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m12s[0m 909ms/step - accuracy: 0.2190 - loss: 2.4193 - val_accuracy: 0.2750 - val_loss: 2.3541
+Epoch 10/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m9s[0m 881ms/step - accuracy: 0.2635 - loss: 2.3056 - val_accuracy: 0.2875 - val_loss: 2.3163
+Epoch 11/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m8s[0m 789ms/step - accuracy: 0.2571 - loss: 2.2967 - val_accuracy: 0.3000 - val_loss: 2.2809
+Epoch 12/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m7s[0m 729ms/step - accuracy: 0.2730 - loss: 2.2023 - val_accuracy: 0.3125 - val_loss: 2.2521
+Epoch 13/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m9s[0m 882ms/step - accuracy: 0.2952 - loss: 2.1917 - val_accuracy: 0.2500 - val_loss: 2.2248
+Epoch 14/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m7s[0m 728ms/step - accuracy: 0.2730 - loss: 2.1861 - val_accuracy: 0.2875 - val_loss: 2.1961
+Epoch 15/15
+[1m10/10[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m7s[0m 719ms/step - accuracy: 0.3143 - loss: 2.0047 - val_accuracy: 0.2750 - val_loss: 2.1773
+
+================================================================================
