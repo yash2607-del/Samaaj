@@ -1,0 +1,100 @@
+{
+  "input_dir": "C:\\Users\\dishi\\mysamaaj\\Samaaj\\dataset",
+  "output_dir": "C:\\Users\\dishi\\mysamaaj\\Samaaj\\dataset_augmented",
+  "target_count": 350,
+  "total_original": 746,
+  "total_final": 4550,
+  "classes": [
+    {
+      "class": "broken_electric_pole",
+      "original": 61,
+      "copied": 61,
+      "generated": 289,
+      "final": 350
+    },
+    {
+      "class": "construction_waste",
+      "original": 64,
+      "copied": 64,
+      "generated": 286,
+      "final": 350
+    },
+    {
+      "class": "drain_overflow",
+      "original": 72,
+      "copied": 72,
+      "generated": 278,
+      "final": 350
+    },
+    {
+      "class": "exposed_wires",
+      "original": 47,
+      "copied": 47,
+      "generated": 303,
+      "final": 350
+    },
+    {
+      "class": "fallen_pole",
+      "original": 57,
+      "copied": 57,
+      "generated": 293,
+      "final": 350
+    },
+    {
+      "class": "overflowing_bin",
+      "original": 65,
+      "copied": 65,
+      "generated": 285,
+      "final": 350
+    },
+    {
+      "class": "potholes",
+      "original": 50,
+      "copied": 50,
+      "generated": 300,
+      "final": 350
+    },
+    {
+      "class": "road_blockage",
+      "original": 38,
+      "copied": 38,
+      "generated": 312,
+      "final": 350
+    },
+    {
+      "class": "road_cracks",
+      "original": 45,
+      "copied": 45,
+      "generated": 305,
+      "final": 350
+    },
+    {
+      "class": "streetlight_issue",
+      "original": 57,
+      "copied": 57,
+      "generated": 293,
+      "final": 350
+    },
+    {
+      "class": "trash_pile",
+      "original": 66,
+      "copied": 66,
+      "generated": 284,
+      "final": 350
+    },
+    {
+      "class": "water_leakage",
+      "original": 59,
+      "copied": 59,
+      "generated": 291,
+      "final": 350
+    },
+    {
+      "class": "waterlogging",
+      "original": 65,
+      "copied": 65,
+      "generated": 285,
+      "final": 350
+    }
+  ]
+}

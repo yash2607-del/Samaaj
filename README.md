@@ -37,15 +37,16 @@ Samaaj is a lightweight civic issue reporting platform that helps citizens raise
 
 Architecture:
 
-Frontend (React) → Node/Express (`/api/report`) → FastAPI (`/predict`) → TensorFlow/Keras model
+Frontend (React) -> Node/Express (`/api/report`) -> FastAPI (`/predict`) -> TensorFlow/Keras model
 
 ### Folder Structure
 
 - `ml_service/app.py`
-- `ml_service/civic_model.keras`
+- `ml_service/train_from_scratch.py`
+- `ml_service/artifacts/` (generated after training)
 - `server/routes/report.js`
 
-### 1) Start the FastAPI ML Service
+### 1) Train the Model From Scratch (Data -> Split -> Model -> Artifacts)
 
 From project root:
 
@@ -57,54 +58,93 @@ python -m venv .venv
 # Linux/macOS
 # source .venv/bin/activate
 
-pip install fastapi uvicorn tensorflow pillow numpy python-multipart
+pip install -r requirements.txt
+python train_from_scratch.py
+```
+
+What this script does:
+
+- reads class folders from `../dataset`
+- creates stratified `../dataset_split/train|val|test`
+- trains a CNN from scratch for all detected classes
+- saves deployable artifacts to `ml_service/artifacts/`:
+	- `civic_issue_model.keras`
+	- `best_civic_issue_model.keras`
+	- `class_names.json`
+	- `model_meta.json`
+	- `training_history.json`
+
+Optional training arguments:
+
+```bash
+python train_from_scratch.py --epochs 50 --batch-size 32 --img-size 224
+python train_from_scratch.py --use-existing-split
+```
+
+### 2) Start the FastAPI ML Service
+
+From `ml_service`:
+
+```bash
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 Optional environment variables for `ml_service/app.py`:
 
-- `MODEL_PATH` (default: `ml_service/civic_model.keras`)
+- `MODEL_PATH` (explicit model path)
 - `CLASS_NAMES` (comma-separated class names)
+- `MODEL_IMAGE_SIZE` (for example: `224,224`)
 
-If `CLASS_NAMES` is not provided, class names are resolved in this order:
-1. `class_names.json`
-2. dataset folders (`dataset_split/train` or `dataset`)
-3. generated fallback (`class_0`, `class_1`, ...)
+Class name resolution order:
 
-### 2) Start Express Server
+1. `CLASS_NAMES` environment variable
+2. `ml_service/artifacts/class_names.json`
+3. `class_names.json` in repo root
+4. folder names from `dataset_split/train` or `dataset`
+5. fallback names (`class_0`, `class_1`, ...)
+
+### 3) Start Express Server
 
 From `server` folder:
 
 ```bash
 npm install
+npm run dev
 ```
 
-Set env var (optional, default shown):
+Optional env var:
 
 ```bash
 ML_SERVICE_URL=http://127.0.0.1:8000
 ```
 
-Run server:
-
-```bash
-npm run dev
-```
-
-### 3) Report API (Node Route)
+### 4) Report API (Node Route)
 
 `POST /api/report`
 
 Multipart form-data fields:
+
 - `photo` (required image)
 - `title` (required)
 - `location` (required)
 - optional: `description`, `addressLine`, `landmark`, `city`, `district`, `state`, `pincode`
 
 The route:
+
 - uploads image with Multer
 - calls FastAPI `/predict` using Axios + FormData
 - stores `mlPrediction` and `mlConfidence` in complaint document
 - maps predicted subclass to complaint category and assigns a matching department
+
+### 5) Confidence Gate (Why "Image is unclear")
+
+Express validation uses `ML_MIN_CONFIDENCE` (default `0.45`).
+
+If prediction confidence is below this threshold, image verification fails with an "unclear" message.
+After retraining, tune threshold in server env if needed:
+
+```bash
+ML_MIN_CONFIDENCE=0.40
+```
 
 
