@@ -4,6 +4,14 @@ import react from '@vitejs/plugin-react-swc'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Ensure PWA files are included in build
+    rollupOptions: {
+      input: {
+        main: './index.html',
+      }
+    }
+  },
   server: {
     host: 'localhost',
     port: 5173,
