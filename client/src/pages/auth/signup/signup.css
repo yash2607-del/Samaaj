@@ -81,5 +81,34 @@
     
   }
 
+  /* Shared auth page responsiveness for login & signup */
+  .auth-page {
+    width: 100%;
+  }
+
+  @media (max-width: 576px) {
+    .auth-page {
+      padding: 1rem !important;
+    }
+
+    .auth-page .card-body {
+      padding: 1.5rem !important;
+    }
+
+    .auth-page .form-control {
+      font-size: 0.9rem;
+      padding: 0.6rem !important;
+    }
+
+    .auth-page .input-group-text {
+      padding: 0.6rem !important;
+    }
+
+    .auth-page .btn.btn-lg {
+      padding: 0.7rem !important;
+      font-size: 1rem;
+    }
+  }
+
 
   
