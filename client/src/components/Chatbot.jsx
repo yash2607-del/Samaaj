@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiMessageSquare, FiX } from 'react-icons/fi';
+import API from '../api.js';
 
 const DEFAULT_GREETING = 'Hi — I can help with submitting complaints, location, and photo guidance.';
 
@@ -87,15 +88,14 @@ export default function Chatbot() {
     let mounted = true;
 
     async function fetchProfile() {
-      if (!authState.token && !authState.user) {
+      if (!authState.token) {
         return;
       }
 
       try {
-        const headers = authState.token ? { Authorization: `Bearer ${authState.token}` } : {};
-        const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/profile`, { headers, credentials: 'include' });
-        if (!mounted || !resp.ok) return;
-        const data = await resp.json();
+        const resp = await API.get('/profile');
+        if (!mounted) return;
+        const data = resp?.data;
         const u = data?.user || data;
         if (u) {
           setProfile(prev => ({ ...(prev || {}), ...u }));

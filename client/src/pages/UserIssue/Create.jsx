@@ -385,6 +385,14 @@ const Create = () => {
           return;
         }
       } catch (validationError) {
+        if (validationError?.response?.status === 401) {
+          setPhotoValidationMsg("");
+          localStorage.removeItem("token");
+          window.dispatchEvent(new Event("authChanged"));
+          setErrorMsg("Session expired. Please log in again and retry.");
+          return;
+        }
+
         if (validationError?.response?.status === 404) {
           setPhotoValidationMsg("");
           setErrorMsg("Image validation endpoint is missing on backend. Deploy latest server changes and try again.");
@@ -427,6 +435,14 @@ const Create = () => {
       setPhotoValidationMsg("");
       navigate("/dashboard");
     } catch (err) {
+      if (err?.response?.status === 401) {
+        localStorage.removeItem("token");
+        window.dispatchEvent(new Event("authChanged"));
+        setPhotoValidationMsg("");
+        setErrorMsg("Session expired. Please log in again and retry.");
+        return;
+      }
+
       if (err?.response?.status >= 400 && err?.response?.status < 500) {
         console.warn('Submission rejected:', err.response?.data?.error || err.response?.data?.message || err.message);
       } else {

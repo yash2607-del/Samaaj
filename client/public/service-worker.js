@@ -1,11 +1,9 @@
-const CACHE_NAME = 'samaaj-v1';
+const CACHE_NAME = 'samaaj-v2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/src/main.jsx',
-  '/src/App.jsx',
-  '/src/index.css',
-  '/src/App.css'
+  '/manifest.json',
+  '/icons/icon-512x512-maskable.png'
 ];
 
 // Install service worker
@@ -15,6 +13,9 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
+      })
+      .catch((error) => {
+        console.warn('Service worker pre-cache failed:', error);
       })
   );
   self.skipWaiting();
@@ -39,21 +40,38 @@ self.addEventListener('activate', (event) => {
 
 // Fetch with network-first strategy
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+
+  // Only cache safe, idempotent requests.
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  // Never cache API calls.
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
-        // Clone the response
-        const responseToCache = response.clone();
-        
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(request, responseToCache);
+            });
+        }
         
         return response;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(request).then((cached) => {
+          if (cached) return cached;
+          if (request.mode === 'navigate') return caches.match('/index.html');
+          return Response.error();
+        });
       })
   );
 });

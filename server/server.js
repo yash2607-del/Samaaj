@@ -27,7 +27,8 @@ if (!MONGO_URI) {
 }
 
 let actualMongoUri = MONGO_URI;
-if (process.env.USE_MEMORY_DB === 'true' || actualMongoUri.includes('127.0.0.1')) {
+// Only use in-memory MongoDB when explicitly requested.
+if (process.env.USE_MEMORY_DB === 'true') {
   try {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     const mongod = await MongoMemoryServer.create();

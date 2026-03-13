@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import API from "../../../api.js";
 import { FiMail, FiLock, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
 import "../signup/signup.css";
 
@@ -18,7 +18,8 @@ function Login() {
     setLoading(true);
     
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/login`, { email, password }, { withCredentials: true });
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const res = await API.post("/login", { email: normalizedEmail, password });
       
       // Store token and user info
       if (res.data.token) localStorage.setItem('token', res.data.token);
@@ -38,7 +39,11 @@ function Login() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed. Please try again.");
+      if (err?.response?.status === 404) {
+        setError("Backend login route not found. Check server URL/port and run backend.");
+      } else {
+        setError(err.response?.data?.error || "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

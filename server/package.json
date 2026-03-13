@@ -9,6 +9,7 @@
     "express-session": "^1.18.2",
     "form-data": "^4.0.5",
     "jsonwebtoken": "^9.0.2",
+    "mongodb-memory-server": "^11.0.1",
     "mongoose": "^8.15.1",
     "multer": "^2.0.2",
     "natural": "^6.2.0",
@@ -17,13 +18,17 @@
     "react-router-dom": "^6.30.2"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
+    "kill-port": "^2.0.1",
     "nodemon": "^3.1.10"
   },
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "kill-port 3000 && nodemon server.js",
+    "dev:memory": "cross-env USE_MEMORY_DB=true kill-port 3000 && cross-env USE_MEMORY_DB=true nodemon server.js",
     "start": "node server.js",
     "seed": "node scripts/seed.js",
+    "reset-password": "node scripts/resetPassword.js",
     "assign-dept": "node scripts/assignModeratorDept.js",
     "drop-cols": "node scripts/dropCollections.js"
   }

@@ -9,14 +9,15 @@ import resolveModeratorDept from '../utils/resolveModeratorDept.js';
 const signup = async (req, res) => {
   try {
     const { role, name, email, password, location, department, assignedArea } = req.body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
     if (!role || !name || !email || !password) return res.status(400).json({ error: 'Missing required fields' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword, role });
+    const user = await User.create({ name, email: normalizedEmail, password: hashedPassword, role });
 
     let deptIdForToken = null;
     if (role === 'Citizen') {
-      await Citizen.create({ userId: user._id, name, email, password: hashedPassword, role, location });
+      await Citizen.create({ userId: user._id, name, email: normalizedEmail, password: hashedPassword, role, location });
     } else if (role === 'Moderator') {
       let deptId = null;
       if (department) {
@@ -31,7 +32,7 @@ const signup = async (req, res) => {
         }
       }
 
-      await Moderator.create({ userId: user._id, name, email, password: hashedPassword, role, department: deptId, assignedArea });
+      await Moderator.create({ userId: user._id, name, email: normalizedEmail, password: hashedPassword, role, department: deptId, assignedArea });
       // fetch created moderator and populate department so we can return it and set session
       try {
         const createdMod = await Moderator.findOne({ userId: user._id }).select('-password').populate('department');
@@ -69,9 +70,12 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
     if (!email || !password) return res.status(400).json({ error: 'Missing credentials' });
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      $or: [{ email: normalizedEmail }, { email: String(email || '').trim() }],
+    });
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
     const isMatch = await bcrypt.compare(password, user.password);
