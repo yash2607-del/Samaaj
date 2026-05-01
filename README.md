@@ -41,67 +41,75 @@ Frontend (React) -> Node/Express (`/api/report`) -> FastAPI (`/predict`) -> Tens
 
 ### Folder Structure
 
-- `ml_service/app.py`
-- `ml_service/train_from_scratch.py`
-- `ml_service/artifacts/` (generated after training)
+- `app.py` (FastAPI inference service)
+- `mysamaaj_ai/train_model.py` (custom CNN training)
+- `mysamaaj_ai/scripts/demo_eval.py` (demo sample picker)
+- `mysamaaj_ai/dataset` and `mysamaaj_ai/dataset_split` (class folders + train/val split)
 - `server/routes/report.js`
 
-### 1) Train the Model From Scratch (Data -> Split -> Model -> Artifacts)
+### 1) Train the Model (Data -> Split -> Train -> Model)
 
 From project root:
 
 ```bash
-cd ml_service
 python -m venv .venv
 # Windows
 .venv\Scripts\activate
 # Linux/macOS
 # source .venv/bin/activate
 
-pip install -r requirements.txt
-python train_from_scratch.py
+pip install -r mysamaaj_ai/requirements.txt
+
+# (optional) resize + split dataset
+python mysamaaj_ai/scripts/resize_images.py
+python mysamaaj_ai/scripts/split_dataset.py
+
+# train
+python mysamaaj_ai/train_model.py
 ```
 
-What this script does:
+What this does:
 
-- reads class folders from `../dataset`
-- creates stratified `../dataset_split/train|val|test`
-- trains a CNN from scratch for all detected classes
-- saves deployable artifacts to `ml_service/artifacts/`:
-	- `civic_issue_model.keras`
-	- `best_civic_issue_model.keras`
-	- `class_names.json`
-	- `model_meta.json`
-	- `training_history.json`
+- reads class folders from `mysamaaj_ai/dataset_split/train` and `mysamaaj_ai/dataset_split/val`
+- trains a lightweight custom CNN (no transfer learning)
+- writes artifacts:
+	- `mysamaaj_ai/civic_issue_model.keras`
+	- `mysamaaj_ai/class_names.json`
 
-Optional training arguments:
+### 1b) Pick Demo Evaluation Samples (Optional)
 
 ```bash
-python train_from_scratch.py --epochs 50 --batch-size 32 --img-size 224
-python train_from_scratch.py --use-existing-split
+python mysamaaj_ai/scripts/demo_eval.py --count 5 --min-confidence 0.55 --min-gap 0.15
 ```
 
 ### 2) Start the FastAPI ML Service
 
-From `ml_service`:
+From project root:
 
 ```bash
+# If needed, point to the trained model explicitly
+# Windows PowerShell:
+#   $env:MODEL_PATH = "<full path>\\mysamaaj_ai\\civic_issue_model.keras"
+#   $env:TEMPERATURE = "1.25"
+
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Optional environment variables for `ml_service/app.py`:
+Optional environment variables for `app.py`:
 
 - `MODEL_PATH` (explicit model path)
-- `CLASS_NAMES` (comma-separated class names)
-- `MODEL_IMAGE_SIZE` (for example: `224,224`)
+- `CLASS_NAMES_PATH` (path to `class_names.json`)
+- `PRETRAINED_MODEL_PATH` (optional fine-tuned pretrained model path, e.g. MobileNet/EfficientNet saved as `.keras`)
+- `PRETRAINED_CLASS_NAMES_PATH` (optional class mapping for the pretrained model; defaults to `CLASS_NAMES_PATH`)
+- `TEMPERATURE` (confidence calibration, e.g. `1.25`)
+- `CNN_TEMPERATURE` / `PRETRAINED_TEMPERATURE` (per-model calibration overrides)
+- `THRESH_VERIFIED` (default `0.70`)
+- `THRESH_REVIEW` (default `0.40`)
 
-Class name resolution order:
+Hybrid ensemble notes:
 
-1. `CLASS_NAMES` environment variable
-2. `ml_service/artifacts/class_names.json`
-3. `class_names.json` in repo root
-4. folder names from `dataset_split/train` or `dataset`
-5. fallback names (`class_0`, `class_1`, ...)
+- If `PRETRAINED_MODEL_PATH` points to a valid model file, the FastAPI `/predict` endpoint runs both models with TTA and combines them via a rule-based decision engine.
+- Response includes `model_outputs` for `cnn` and `pretrained`, plus `final_label`, `confidence`, `decision`, and `top_predictions`.
 
 ### 3) Start Express Server
 

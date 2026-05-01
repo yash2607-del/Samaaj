@@ -25,6 +25,7 @@ const Create = () => {
   const [photoError, setPhotoError] = useState("");
   const [photoValidationMsg, setPhotoValidationMsg] = useState("");
   const [verifyingPhoto, setVerifyingPhoto] = useState(false);
+  const [validationRetryable, setValidationRetryable] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +37,7 @@ const Create = () => {
       setPhotoPreview(null);
       setPhotoError("");
       setPhotoValidationMsg("");
+      setValidationRetryable(false);
       return;
     }
 
@@ -44,6 +46,7 @@ const Create = () => {
       setPhoto(null);
       setPhotoPreview(null);
       setPhotoValidationMsg("");
+      setValidationRetryable(false);
       return;
     }
 
@@ -52,12 +55,14 @@ const Create = () => {
       setPhoto(null);
       setPhotoPreview(null);
       setPhotoValidationMsg("");
+      setValidationRetryable(false);
       return;
     }
 
     setPhoto(file);
     setPhotoError("");
     setPhotoValidationMsg("");
+    setValidationRetryable(false);
     setPhotoPreview(URL.createObjectURL(file));
 
     // No AI validation — only basic client-side checks
@@ -318,6 +323,86 @@ const Create = () => {
 
   
 
+  const runImageValidation = async () => {
+    if (!photo) {
+      setPhotoValidationMsg("");
+      setErrorMsg("Photo is required for validation.");
+      setValidationRetryable(false);
+      return false;
+    }
+
+    const validateData = new FormData();
+    validateData.append("category", category);
+    validateData.append("title", title.trim());
+    validateData.append("description", description.trim());
+    validateData.append("photo", photo);
+
+    try {
+      setVerifyingPhoto(true);
+      setPhotoValidationMsg("Verifying image with ML model...");
+      setValidationRetryable(false);
+      setErrorMsg("");
+
+      const validationResponse = await API.post("/api/complaints/validate-image", validateData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      if (validationResponse?.data?.valid === false) {
+        setPhotoValidationMsg("");
+        setErrorMsg(validationResponse?.data?.message || "Image does not match complaint context.");
+        return false;
+      }
+
+      const decision = String(validationResponse?.data?.decision || '').trim().toLowerCase();
+      setPhotoValidationMsg(
+        decision && decision !== 'verified'
+          ? 'Possible issue detected, marked for review'
+          : 'Image verified.'
+      );
+      return true;
+    } catch (validationError) {
+      if (validationError?.response?.status === 401) {
+        setPhotoValidationMsg("");
+        localStorage.removeItem("token");
+        window.dispatchEvent(new Event("authChanged"));
+        setErrorMsg("Session expired. Please log in again and retry.");
+        return false;
+      }
+
+      if (validationError?.response?.status === 404) {
+        setPhotoValidationMsg("");
+        setErrorMsg("Image validation endpoint is missing on backend. Deploy latest server changes and try again.");
+        return false;
+      }
+
+      if (validationError?.response?.status === 400) {
+        setPhotoValidationMsg("");
+        setErrorMsg(validationError?.response?.data?.error || validationError?.response?.data?.message || "Image does not match complaint context.");
+        return false;
+      }
+
+      const status = validationError?.response?.status;
+      if (status === 502 || status === 503) {
+        setPhotoValidationMsg("");
+        setErrorMsg(validationError?.response?.data?.error || "Image validation service unavailable. Please retry.");
+        setValidationRetryable(true);
+        return false;
+      }
+
+      setPhotoValidationMsg("");
+      setErrorMsg(
+        validationError?.response?.data?.error
+        || validationError?.response?.data?.message
+        || validationError?.message
+        || "Image validation failed."
+      );
+      return false;
+    } finally {
+      setVerifyingPhoto(false);
+    }
+  };
+
+
   // Handle form submission -> send multipart/form-data to server
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -365,50 +450,13 @@ const Create = () => {
 
     try {
       setSubmitting(true);
+      setValidationRetryable(false);
+
+      const isValid = await runImageValidation();
+      if (!isValid) return;
+
       setVerifyingPhoto(true);
-      setPhotoValidationMsg("Verifying image with ML model...");
-
-      const validateData = new FormData();
-      validateData.append("category", category);
-      validateData.append("title", title.trim());
-      validateData.append("description", description.trim());
-      validateData.append("photo", photo);
-
-      try {
-        const validationResponse = await API.post("/api/complaints/validate-image", validateData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-
-        if (validationResponse?.data?.valid === false) {
-          setPhotoValidationMsg("");
-          setErrorMsg(validationResponse?.data?.message || "Image does not match complaint context.");
-          return;
-        }
-      } catch (validationError) {
-        if (validationError?.response?.status === 401) {
-          setPhotoValidationMsg("");
-          localStorage.removeItem("token");
-          window.dispatchEvent(new Event("authChanged"));
-          setErrorMsg("Session expired. Please log in again and retry.");
-          return;
-        }
-
-        if (validationError?.response?.status === 404) {
-          setPhotoValidationMsg("");
-          setErrorMsg("Image validation endpoint is missing on backend. Deploy latest server changes and try again.");
-          return;
-        }
-
-        if (validationError?.response?.status === 400) {
-          setPhotoValidationMsg("");
-          setErrorMsg(validationError?.response?.data?.error || validationError?.response?.data?.message || "Image does not match complaint context.");
-          return;
-        }
-
-        throw validationError;
-      }
-
-      setPhotoValidationMsg("Image verified. Submitting complaint...");
+      setPhotoValidationMsg("Submitting complaint...");
 
       const storedUser = localStorage.getItem("user");
       const parsedUser = storedUser ? JSON.parse(storedUser) : null;
@@ -448,6 +496,11 @@ const Create = () => {
       } else {
         console.error(err);
       }
+
+      const status = err?.response?.status;
+      const retryable = (status === 502 || status === 503) && Boolean(err?.response?.data?.retryable);
+      setValidationRetryable(retryable);
+
       setPhotoValidationMsg("");
       setErrorMsg(err.response?.data?.error || err.response?.data?.message || err.message || "Submission failed. Try again.");
     } finally {
@@ -485,9 +538,22 @@ const Create = () => {
         <section className="py-4 px-4">
           <div className="container">
             {errorMsg && (
-          <div className="alert d-flex align-items-center shadow-sm mb-4" style={{ backgroundColor: "#FFEBEE", color: "#C62828", border: "none", borderLeft: "4px solid #D32F2F", borderRadius: "8px", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-            <FiAlertCircle className="me-2" style={{ fontSize: "1.3rem", flexShrink: 0 }} />
-            <span>{errorMsg}</span>
+          <div className="alert d-flex align-items-center justify-content-between shadow-sm mb-4" style={{ backgroundColor: "#FFEBEE", color: "#C62828", border: "none", borderLeft: "4px solid #D32F2F", borderRadius: "8px", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+            <div className="d-flex align-items-center">
+              <FiAlertCircle className="me-2" style={{ fontSize: "1.3rem", flexShrink: 0 }} />
+              <span>{errorMsg}</span>
+            </div>
+            {validationRetryable && photo && (
+              <button
+                type="button"
+                className="btn btn-sm fw-semibold"
+                style={{ backgroundColor: "#FFB347", color: "#1a1a1a", border: "none" }}
+                onClick={runImageValidation}
+                disabled={submitting || verifyingPhoto}
+              >
+                Retry Image Verification
+              </button>
+            )}
           </div>
         )}
         {successMsg && (
@@ -825,7 +891,12 @@ const Create = () => {
                     )}
                     {photoValidationMsg && (
                       <div className="mt-2 d-flex align-items-center" style={{ color: "#2E7D32", fontSize: "0.9rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                        <FiCheckCircle className="me-1" />{photoValidationMsg}
+                        {verifyingPhoto ? (
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        ) : (
+                          <FiCheckCircle className="me-1" />
+                        )}
+                        {photoValidationMsg}
                       </div>
                     )}
                     <small className="text-muted d-block mt-2" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>

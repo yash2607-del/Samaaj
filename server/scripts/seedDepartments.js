@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Department from './models/Department.js';
+import Department from '../models/Department.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

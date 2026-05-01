@@ -1,0 +1,11 @@
+# ML training + inference dependencies
+# Note: install a TensorFlow build compatible with your Python version.
+
+tensorflow
+numpy
+pillow
+split-folders
+
+fastapi
+uvicorn
+python-multipart

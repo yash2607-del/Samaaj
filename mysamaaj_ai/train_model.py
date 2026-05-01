@@ -1,87 +1,171 @@
-import tensorflow as tf
-from tensorflow.keras import layers, models
+import json
 import os
 
-# Get current directory
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models, regularizers
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-train_dir = os.path.join(BASE_DIR, "dataset_split", "train")
-val_dir = os.path.join(BASE_DIR, "dataset_split", "val")
+TRAIN_DIR = os.path.join(BASE_DIR, "dataset_split", "train")
+VAL_DIR = os.path.join(BASE_DIR, "dataset_split", "val")
 
-img_size = (224,224)
-batch_size = 16
+IMAGE_SIZE = (224, 224)
+BATCH_SIZE = 16
+EPOCHS = 60
 
-# Load datasets
-train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    train_dir,
-    image_size=img_size,
-    batch_size=batch_size
-)
+LABEL_SMOOTHING = 0.10
+DROPOUT_RATE = 0.50
+L2_WEIGHT = 1e-4
 
-val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    val_dir,
-    image_size=img_size,
-    batch_size=batch_size
-)
+MODEL_OUT_PATH = os.path.join(BASE_DIR, "civic_issue_model.keras")
+CLASS_NAMES_PATH = os.path.join(BASE_DIR, "class_names.json")
 
-class_names = train_ds.class_names
-print("Classes:", class_names)
 
-# Normalize
-normalization_layer = layers.Rescaling(1./255)
+def _build_generators():
+    if not os.path.isdir(TRAIN_DIR):
+        raise FileNotFoundError(f"Missing train folder: {TRAIN_DIR}")
+    if not os.path.isdir(VAL_DIR):
+        raise FileNotFoundError(f"Missing val folder: {VAL_DIR}")
 
-train_ds = train_ds.map(lambda x,y:(normalization_layer(x),y))
-val_ds = val_ds.map(lambda x,y:(normalization_layer(x),y))
+    # Stronger augmentation (small dataset + better generalization)
+    train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+        rescale=1.0 / 255.0,
+        rotation_range=25,
+        width_shift_range=0.12,
+        height_shift_range=0.12,
+        shear_range=0.10,
+        zoom_range=0.18,
+        brightness_range=(0.8, 1.2),
+        horizontal_flip=True,
+        fill_mode="nearest",
+    )
 
-# Data Augmentation (improves accuracy)
-data_augmentation = tf.keras.Sequential([
-    layers.RandomFlip("horizontal"),
-    layers.RandomRotation(0.1),
-    layers.RandomZoom(0.1)
-])
+    val_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1.0 / 255.0)
 
-# CNN Model
-model = models.Sequential([
+    train_gen = train_datagen.flow_from_directory(
+        TRAIN_DIR,
+        target_size=IMAGE_SIZE,
+        batch_size=BATCH_SIZE,
+        class_mode="categorical",
+        shuffle=True,
+    )
 
-data_augmentation,
+    val_gen = val_datagen.flow_from_directory(
+        VAL_DIR,
+        target_size=IMAGE_SIZE,
+        batch_size=BATCH_SIZE,
+        class_mode="categorical",
+        shuffle=False,
+    )
 
-layers.Conv2D(32,(3,3),activation='relu',input_shape=(224,224,3)),
-layers.MaxPooling2D(),
+    # Persist class names to keep inference label order reliable
+    class_indices = train_gen.class_indices
+    class_names = [None] * len(class_indices)
+    for name, idx in class_indices.items():
+        class_names[int(idx)] = str(name)
+    print("Classes:", class_names)
+    with open(CLASS_NAMES_PATH, "w", encoding="utf-8") as f:
+        json.dump(class_names, f, indent=2)
 
-layers.Conv2D(64,(3,3),activation='relu'),
-layers.MaxPooling2D(),
+    # Class weights for imbalance
+    class_counts = np.bincount(train_gen.classes, minlength=len(class_names)).astype(np.float32)
+    total = float(np.sum(class_counts))
+    class_weight = {}
+    for i, count in enumerate(class_counts):
+        if count <= 0:
+            class_weight[i] = 1.0
+        else:
+            class_weight[i] = total / (len(class_names) * float(count))
 
-layers.Conv2D(128,(3,3),activation='relu'),
-layers.MaxPooling2D(),
+    return train_gen, val_gen, class_names, class_weight
 
-layers.Flatten(),
 
-layers.Dense(128,activation='relu'),
+def _build_model(num_classes: int) -> tf.keras.Model:
+    reg = regularizers.l2(L2_WEIGHT)
 
-layers.Dropout(0.3),
+    def conv_block(filters: int):
+        return [
+            layers.Conv2D(filters, (3, 3), padding="same", use_bias=False, kernel_regularizer=reg),
+            layers.BatchNormalization(),
+            layers.Activation("relu"),
+            layers.MaxPooling2D(),
+            layers.Dropout(0.20),
+        ]
 
-layers.Dense(len(class_names),activation='softmax')
+    model = models.Sequential(
+        [
+            layers.Input(shape=(IMAGE_SIZE[0], IMAGE_SIZE[1], 3)),
+            *conv_block(32),
+            *conv_block(64),
+            *conv_block(128),
+            layers.Conv2D(192, (3, 3), padding="same", use_bias=False, kernel_regularizer=reg),
+            layers.BatchNormalization(),
+            layers.Activation("relu"),
+            layers.GlobalAveragePooling2D(),
+            layers.Dense(128, activation="relu", kernel_regularizer=reg),
+            layers.Dropout(DROPOUT_RATE),
+            layers.Dense(num_classes, activation="softmax"),
+        ]
+    )
+    return model
 
-])
 
-model.compile(
+def main():
+    train_gen, val_gen, class_names, class_weight = _build_generators()
 
-optimizer='adam',
-loss='sparse_categorical_crossentropy',
-metrics=['accuracy']
+    model = _build_model(num_classes=len(class_names))
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=LABEL_SMOOTHING),
+        metrics=[
+            "accuracy",
+            tf.keras.metrics.TopKCategoricalAccuracy(k=2, name="top_2_accuracy"),
+        ],
+    )
 
-)
+    model.summary()
 
-model.summary()
+    callbacks = [
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath=MODEL_OUT_PATH,
+            monitor="val_loss",
+            save_best_only=True,
+            save_weights_only=False,
+            verbose=1,
+        ),
+        tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss",
+            patience=8,
+            restore_best_weights=True,
+            verbose=1,
+        ),
+        tf.keras.callbacks.ReduceLROnPlateau(
+            monitor="val_loss",
+            factor=0.5,
+            patience=3,
+            min_lr=1e-6,
+            verbose=1,
+        ),
+    ]
 
-history = model.fit(
+    history = model.fit(
+        train_gen,
+        validation_data=val_gen,
+        epochs=EPOCHS,
+        class_weight=class_weight,
+        callbacks=callbacks,
+        verbose=1,
+    )
 
-train_ds,
-validation_data=val_ds,
-epochs=35
+    # Save final model too (best model is already saved by checkpoint)
+    model.save(MODEL_OUT_PATH)
+    print(f"Model saved: {MODEL_OUT_PATH}")
+    print(f"Class names saved: {CLASS_NAMES_PATH}")
 
-)
+    return history
 
-model.save("civic_issue_model.keras")
 
-print("Model saved successfully")
+if __name__ == "__main__":
+    main()

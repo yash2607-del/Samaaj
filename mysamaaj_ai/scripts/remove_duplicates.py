@@ -1,27 +1,40 @@
+from __future__ import annotations
+
+from pathlib import Path
+
 import imagehash
 from PIL import Image
-import os
 
-hashes = {}
 
-dataset_path = "dataset"
+BASE_DIR = Path(__file__).resolve().parents[1]  # mysamaaj_ai/
+DATASET_DIR = BASE_DIR / "dataset"
 
-for root, dirs, files in os.walk(dataset_path):
 
-    for file in files:
+def main():
+    if not DATASET_DIR.exists():
+        raise FileNotFoundError(f"Dataset folder not found: {DATASET_DIR}")
 
-        path = os.path.join(root, file)
+    hashes: dict[str, str] = {}
+    removed = 0
+    errors = 0
 
+    for path in DATASET_DIR.rglob("*"):
+        if not path.is_file():
+            continue
         try:
-            img = Image.open(path)
-            h = str(imagehash.phash(img))
-
+            with Image.open(path) as img:
+                h = str(imagehash.phash(img))
             if h in hashes:
-                os.remove(path)
+                path.unlink(missing_ok=True)
+                removed += 1
             else:
-                hashes[h] = path
+                hashes[h] = str(path)
+        except Exception:
+            # Don't auto-delete on any exception; count and continue.
+            errors += 1
 
-        except:
-            os.remove(path)
+    print(f"Duplicate removal complete | removed={removed} hash_errors={errors}")
 
-print("Duplicate images removed")
+
+if __name__ == "__main__":
+    main()

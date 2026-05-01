@@ -1,7 +1,5 @@
 import express from "express";
-import axios from "axios";
 import multer from "multer";
-import FormData from "form-data";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -9,6 +7,7 @@ import Complaint from "../models/complaint.js";
 import Department from "../models/Department.js";
 import auth from "../middleware/auth.js";
 import notifyOnComplaintCreate from "../utils/notifyOnComplaintCreate.js";
+import { predictIssueFromImagePath, assessPredictionReliability } from '../utils/mlImageValidation.js';
 
 const router = express.Router();
 
@@ -30,7 +29,27 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://127.0.0.1:8000";
+const ACCEPTED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+
+const toMlReviewStatus = (decision) => {
+  const d = String(decision || '').trim().toLowerCase();
+  if (d === 'verified') return 'Verified';
+  if (d === 'needs_review') return 'Pending Review';
+  if (d === 'uncertain') return 'Manual Check';
+  if (d === 'unclear') return 'Rejected';
+  return '';
+};
+
+const safelyDeleteUploadedFile = async (filePath) => {
+  try {
+    if (!filePath) return;
+    if (fs.existsSync(filePath)) {
+      await fs.promises.unlink(filePath);
+    }
+  } catch (error) {
+    console.warn('Failed to remove uploaded file:', filePath, error?.message || error);
+  }
+};
 
 const issueToCategoryMap = {
   potholes: "Road",
@@ -74,35 +93,49 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
       return res.status(400).json({ message: "Photo upload is required" });
     }
 
-    const imagePath = path.join(uploadsDir, req.file.filename);
-    const formData = new FormData();
-    formData.append("file", fs.createReadStream(imagePath), req.file.originalname || req.file.filename);
-
-    let predictionResponse;
-    try {
-      predictionResponse = await axios.post(`${ML_SERVICE_URL}/predict`, formData, {
-        headers: formData.getHeaders(),
-        maxBodyLength: Infinity,
-        timeout: 15000
-      });
-    } catch (serviceError) {
-      const detail = serviceError?.response?.data || serviceError.message;
-      return res.status(502).json({ message: "ML service unavailable", detail });
-    }
-
-    const { prediction, confidence } = predictionResponse.data || {};
-    if (!prediction || typeof confidence !== "number") {
-      return res.status(502).json({ message: "Invalid response from ML service" });
+    const uploadMime = String(req.file.mimetype || '').toLowerCase();
+    if (!ACCEPTED_IMAGE_MIME_TYPES.has(uploadMime)) {
+      await safelyDeleteUploadedFile(req.file.path);
+      return res.status(400).json({ message: 'Only JPG, PNG, WEBP, HEIC, or HEIF images are allowed.' });
     }
 
     const { title, description, location, addressLine, landmark, city, district, state, pincode } = req.body || {};
 
     if (!title || !location) {
+      await safelyDeleteUploadedFile(req.file.path);
       return res.status(400).json({ message: "title and location are required" });
     }
 
+    const imagePath = path.join(uploadsDir, req.file.filename);
+
+    let predictionResult;
+    try {
+      predictionResult = await predictIssueFromImagePath({
+        imagePath,
+        originalName: req.file.originalname || req.file.filename
+      });
+    } catch (serviceError) {
+      await safelyDeleteUploadedFile(req.file.path);
+      const detail = serviceError?.response?.data || serviceError.message;
+      return res.status(502).json({ message: "ML service unavailable", detail });
+    }
+
+    const reliability = assessPredictionReliability(predictionResult);
+    if (!reliability.ok) {
+      await safelyDeleteUploadedFile(req.file.path);
+      if (reliability.reason === 'low_confidence') {
+        return res.status(400).json({ message: 'Image is unclear for reliable verification. Please upload a clearer image.' });
+      }
+      return res.status(400).json({ message: 'Image appears unrelated or ambiguous for civic issue detection. Please upload a focused issue photo.' });
+    }
+
+    const { prediction, confidence, decision, modelOutputs } = predictionResult;
+    const mlDecision = String(decision || '').trim().toLowerCase();
+    const mlReviewStatus = toMlReviewStatus(mlDecision);
+
     const { departmentId, category } = await resolveDepartmentFromPrediction(prediction);
     if (!departmentId) {
+      await safelyDeleteUploadedFile(req.file.path);
       return res.status(400).json({ message: "No department found to assign predicted issue" });
     }
 
@@ -121,7 +154,10 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
       userId: req.user?.id || null,
       photo: `/uploads/${req.file.filename}`,
       mlPrediction: prediction,
-      mlConfidence: confidence
+      mlConfidence: confidence,
+      mlDecision,
+      mlReviewStatus,
+      mlModelOutputs: modelOutputs || null
     });
 
     await notifyOnComplaintCreate({ complaint });
@@ -133,10 +169,11 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
     return res.status(201).json({
       message: "Complaint created with ML prediction",
       prediction,
-      confidence,
+      decision: mlDecision,
       complaint: populatedComplaint
     });
   } catch (error) {
+    await safelyDeleteUploadedFile(req.file?.path);
     console.error("Error in /api/report:", error);
     return res.status(500).json({ message: "Server error" });
   }

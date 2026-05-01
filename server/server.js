@@ -37,7 +37,7 @@ if (process.env.USE_MEMORY_DB === 'true') {
     
     // Seed the memory DB in a separate process
     const { execSync } = await import('child_process');
-    execSync('node seedDepartments.js', { 
+    execSync('node scripts/seedDepartments.js', { 
       stdio: 'inherit', 
       env: { ...process.env, MONGO_URI: actualMongoUri } 
     });

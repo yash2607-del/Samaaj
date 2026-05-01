@@ -20,6 +20,17 @@ const complaintSchema = new Schema(
     photo: { type: String, default: "" },
     mlPrediction: { type: String, default: "" },
     mlConfidence: { type: Number, min: 0, max: 1, default: null },
+    mlDecision: {
+      type: String,
+      enum: ["", "verified", "needs_review", "uncertain", "unclear"],
+      default: ""
+    },
+    mlReviewStatus: {
+      type: String,
+      enum: ["", "Verified", "Pending Review", "Manual Check", "Rejected"],
+      default: ""
+    },
+    mlModelOutputs: { type: Schema.Types.Mixed, default: null },
     status: {
       type: String,
       enum: ["Pending","In Progress","Resolved","Rejected"],

@@ -43,6 +43,31 @@ const statusMeta = {
   }
 };
 
+const mlDecisionMeta = {
+  verified: {
+    label: 'AI Verified',
+    badgeClass: 'bg-success text-white'
+  },
+  needs_review: {
+    label: 'AI Needs Review',
+    badgeClass: 'bg-warning text-dark'
+  },
+  uncertain: {
+    label: 'AI Manual Check',
+    badgeClass: 'bg-secondary text-white'
+  }
+};
+
+const normalizeMlDecision = (issue) => {
+  const direct = String(issue?.mlDecision || '').trim().toLowerCase();
+  if (direct) return direct;
+  const reviewStatus = String(issue?.mlReviewStatus || '').trim().toLowerCase();
+  if (reviewStatus === 'verified') return 'verified';
+  if (reviewStatus === 'pending review') return 'needs_review';
+  if (reviewStatus === 'manual check') return 'uncertain';
+  return '';
+};
+
 const normalizePhotoUrl = (photoPath) => {
   if (!photoPath) return placeholderImg;
   const filename = (photoPath || '').split('/').pop();
@@ -266,6 +291,8 @@ export default function Usertrack() {
               const meta = statusMeta[status] || statusMeta.Pending;
               const StatusIcon = meta.icon;
               const photoUrl = normalizePhotoUrl(issue.photo);
+              const mlDecision = normalizeMlDecision(issue);
+              const mlMeta = mlDecision ? mlDecisionMeta[mlDecision] : null;
 
               return (
                 <div className="col-md-6 col-xl-4" key={issue._id || issue.id}>
@@ -318,14 +345,19 @@ export default function Usertrack() {
                             e.currentTarget.style.display = 'none';
                           }}
                         />
-                        <div 
-                          className="position-absolute top-0 end-0 m-3"
+                        <div
+                          className="position-absolute top-0 end-0 m-3 d-flex flex-column gap-2 align-items-end"
                           style={{ zIndex: 1 }}
                         >
                           <span className={`badge ${meta.badgeClass} d-inline-flex align-items-center gap-1 px-3 py-2 shadow`}>
                             <StatusIcon />
                             {status}
                           </span>
+                          {mlMeta && (
+                            <span className={`badge ${mlMeta.badgeClass} px-3 py-2 shadow`}>
+                              {mlMeta.label}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -334,14 +366,19 @@ export default function Usertrack() {
                         style={{ height: "200px", backgroundColor: meta.surface }}
                       >
                         <FiInbox style={{ fontSize: "3rem", color: "#BDBDBD" }} />
-                        <div 
-                          className="position-absolute top-0 end-0 m-3"
+                        <div
+                          className="position-absolute top-0 end-0 m-3 d-flex flex-column gap-2 align-items-end"
                           style={{ zIndex: 1 }}
                         >
                           <span className={`badge ${meta.badgeClass} d-inline-flex align-items-center gap-1 px-3 py-2 shadow`}>
                             <StatusIcon />
                             {status}
                           </span>
+                          {mlMeta && (
+                            <span className={`badge ${mlMeta.badgeClass} px-3 py-2 shadow`}>
+                              {mlMeta.label}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -361,6 +398,16 @@ export default function Usertrack() {
                               <span className="fw-semibold">{issue.category || "Uncategorized"}</span>
                             </div>
                           </div>
+                          {issue.mlPrediction && (
+                            <div className="col-12">
+                              <div className="d-flex align-items-center gap-2 text-muted small">
+                                <FiAlertCircle style={{ color: "#FFB347", fontSize: "1rem" }} />
+                                <span>
+                                  AI: <span className="fw-semibold">{issue.mlPrediction}</span>
+                                </span>
+                              </div>
+                            </div>
+                          )}
                           <div className="col-12">
                             <div className="d-flex align-items-center gap-2 text-muted small">
                               <FiCalendar style={{ color: "#FFB347", fontSize: "1rem" }} />
@@ -412,9 +459,21 @@ export default function Usertrack() {
                       <h4 className="fw-bold mb-2" style={{ color: "#1a1a1a" }}>
                         {selectedIssue.title || "Untitled Complaint"}
                       </h4>
-                      <span className={`badge ${statusMeta[selectedIssue.status]?.badgeClass || statusMeta.Pending.badgeClass} px-3 py-2`}>
-                        {selectedIssue.status || "Pending"}
-                      </span>
+                      <div className="d-flex flex-wrap gap-2">
+                        <span className={`badge ${statusMeta[selectedIssue.status]?.badgeClass || statusMeta.Pending.badgeClass} px-3 py-2`}>
+                          {selectedIssue.status || "Pending"}
+                        </span>
+                        {(() => {
+                          const d = normalizeMlDecision(selectedIssue);
+                          const m = d ? mlDecisionMeta[d] : null;
+                          if (!m) return null;
+                          return (
+                            <span className={`badge ${m.badgeClass} px-3 py-2`}>
+                              {m.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
                     <button
                       className="btn btn-light border-0"

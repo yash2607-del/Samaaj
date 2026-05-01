@@ -12,6 +12,27 @@ import notifyOnComplaintCreate from '../utils/notifyOnComplaintCreate.js';
 import { assertComplaintImageContext } from '../utils/mlImageValidation.js';
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const ACCEPTED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+
+const toMlReviewStatus = (decision) => {
+  const d = String(decision || '').trim().toLowerCase();
+  if (d === 'verified') return 'Verified';
+  if (d === 'needs_review') return 'Pending Review';
+  if (d === 'uncertain') return 'Manual Check';
+  if (d === 'unclear') return 'Rejected';
+  return '';
+};
+
+const safelyDeleteUploadedFile = async (filePath) => {
+  try {
+    if (!filePath) return;
+    if (fs.existsSync(filePath)) {
+      await fs.promises.unlink(filePath);
+    }
+  } catch (error) {
+    console.warn('Failed to remove uploaded file:', filePath, error?.message || error);
+  }
+};
 
 const getDepartments = async (req, res) => {
   try {
@@ -491,6 +512,14 @@ const createComplaint = async (req, res) => {
     if (!title || !category || !location || !departmentUsed) return res.status(400).json({ error: "All fields are required (ensure department is provided)" });
     if (!req.file) return res.status(400).json({ error: 'Photo is required' });
 
+    const uploadMime = String(req.file.mimetype || '').toLowerCase();
+    if (!ACCEPTED_IMAGE_MIME_TYPES.has(uploadMime)) {
+      await safelyDeleteUploadedFile(req.file.path);
+      return res.status(400).json({
+        error: 'Only JPG, PNG, WEBP, HEIC, or HEIF images are allowed.'
+      });
+    }
+
     if (userId && !mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ error: "Invalid user" });
 
     const departmentExists = await Department.findById(departmentUsed);
@@ -507,34 +536,58 @@ const createComplaint = async (req, res) => {
       });
     } catch (mlError) {
       console.error('ML validation failed:', mlError);
+      await safelyDeleteUploadedFile(req.file.path);
       const mlDetail = mlError?.response?.data?.detail || mlError?.response?.data?.error || mlError?.message;
       return res.status(503).json({
-        error: `Image validation service unavailable. ${mlDetail ? `Details: ${mlDetail}` : 'Please try again in a moment.'}`
+        error: `Image validation service unavailable. ${mlDetail ? `Details: ${mlDetail}` : 'Please try again in a moment.'}`,
+        retryable: true
       });
     }
 
     if (!validationResult.ok) {
+      await safelyDeleteUploadedFile(req.file.path);
+
+      if (validationResult.reason === 'unclear') {
+        return res.status(400).json({
+          error: 'Unable to verify this photo as a civic issue. Please upload a clearer, closer image of the issue.'
+        });
+      }
+
       if (validationResult.reason === 'low_confidence') {
         return res.status(400).json({
-          error: `Image is unclear for reliable verification (confidence ${(validationResult.confidence * 100).toFixed(1)}%). Please upload a clearer, relevant image.`
+          error: 'Unable to verify this photo reliably. Please upload a clearer, closer image of the issue.'
+        });
+      }
+
+      if (validationResult.reason === 'ambiguous_prediction') {
+        return res.status(400).json({
+          error: `Image appears unrelated or ambiguous for civic issues (top confidence gap too low). Please upload a focused issue photo.`
+        });
+      }
+
+      if (validationResult.reason === 'unstable_prediction') {
+        return res.status(400).json({
+          error: 'Image prediction is unstable across checks. Please upload a clearer, focused issue photo from a closer angle.'
+        });
+      }
+
+      if (validationResult.reason === 'issue_mismatch') {
+        const expected = Array.isArray(validationResult.expectedIssues) && validationResult.expectedIssues.length > 0
+          ? validationResult.expectedIssues.join(', ')
+          : category;
+        return res.status(400).json({
+          error: `Image does not match complaint context. Expected: ${expected}; detected: ${validationResult.prediction}.`
         });
       }
 
       return res.status(400).json({
-        error: `Image does not match selected category \"${category}\" (detected \"${validationResult.prediction}\" with ${(validationResult.confidence * 100).toFixed(1)}% confidence).`
-      });
-    }
-
-    if (validationResult.reason === 'issue_mismatch') {
-      const expected = Array.isArray(validationResult.expectedIssues) && validationResult.expectedIssues.length > 0
-        ? validationResult.expectedIssues.join(', ')
-        : category;
-      return res.status(400).json({
-        error: `Image does not match complaint context. Expected: ${expected}; detected: ${validationResult.prediction} (${(validationResult.confidence * 100).toFixed(1)}%).`
+        error: `Image does not match selected category \"${category}\" (detected \"${validationResult.prediction}\").`
       });
     }
 
     const photoPath = `/uploads/${req.file.filename}`;
+    const mlDecision = String(validationResult?.decision || '').trim().toLowerCase();
+    const mlReviewStatus = toMlReviewStatus(mlDecision);
 
     const complaint = new Complaint({
       title,
@@ -551,7 +604,10 @@ const createComplaint = async (req, res) => {
       userId: userId || (req.user?.id ? req.user.id : null),
       photo: photoPath,
       mlPrediction: validationResult.prediction,
-      mlConfidence: validationResult.confidence
+      mlConfidence: validationResult.confidence,
+      mlDecision,
+      mlReviewStatus,
+      mlModelOutputs: validationResult?.modelOutputs || null
     });
 
     await complaint.save();
@@ -568,6 +624,13 @@ const createComplaint = async (req, res) => {
 const validateComplaintImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Photo is required for validation' });
+
+    const uploadMime = String(req.file.mimetype || '').toLowerCase();
+    if (!ACCEPTED_IMAGE_MIME_TYPES.has(uploadMime)) {
+      return res.status(400).json({
+        error: 'Only JPG, PNG, WEBP, HEIC, or HEIF images are allowed.'
+      });
+    }
 
     const body = req.body || {};
     const { category, title, description } = body;
@@ -589,18 +652,47 @@ const validateComplaintImage = async (req, res) => {
       console.error('ML pre-validation failed:', mlError);
       const mlDetail = mlError?.response?.data?.detail || mlError?.response?.data?.error || mlError?.message;
       return res.status(503).json({
-        error: `Image validation service unavailable. ${mlDetail ? `Details: ${mlDetail}` : 'Please try again.'}`
+        error: `Image validation service unavailable. ${mlDetail ? `Details: ${mlDetail}` : 'Please try again.'}`,
+        retryable: true
       });
     }
 
     if (!validationResult.ok) {
+      if (validationResult.reason === 'unclear') {
+        return res.json({
+          valid: false,
+          reason: validationResult.reason,
+          prediction: validationResult.prediction,
+          message: 'Unable to verify this photo as a civic issue. Please upload a clearer, closer image of the issue.'
+        });
+      }
+
       if (validationResult.reason === 'low_confidence') {
         return res.json({
           valid: false,
           reason: validationResult.reason,
           prediction: validationResult.prediction,
+          message: 'Unable to verify this photo reliably. Please upload a clearer, closer image of the issue.'
+        });
+      }
+
+      if (validationResult.reason === 'ambiguous_prediction') {
+        return res.json({
+          valid: false,
+          reason: validationResult.reason,
+          prediction: validationResult.prediction,
           confidence: validationResult.confidence,
-          message: `Image is unclear for reliable verification (confidence ${(validationResult.confidence * 100).toFixed(1)}%). Please upload a clearer image.`
+          message: 'Image appears unrelated or ambiguous for civic issues. Please upload a focused issue photo.'
+        });
+      }
+
+      if (validationResult.reason === 'unstable_prediction') {
+        return res.json({
+          valid: false,
+          reason: validationResult.reason,
+          prediction: validationResult.prediction,
+          confidence: validationResult.confidence,
+          message: 'Image prediction is unstable across checks. Please upload a clearer, focused issue photo from a closer angle.'
         });
       }
 
@@ -612,8 +704,7 @@ const validateComplaintImage = async (req, res) => {
           valid: false,
           reason: validationResult.reason,
           prediction: validationResult.prediction,
-          confidence: validationResult.confidence,
-          message: `Image does not match complaint context. Expected: ${expected}; detected: ${validationResult.prediction} (${(validationResult.confidence * 100).toFixed(1)}%).`
+          message: `Image does not match complaint context. Expected: ${expected}; detected: ${validationResult.prediction}.`
         });
       }
 
@@ -621,20 +712,27 @@ const validateComplaintImage = async (req, res) => {
         valid: false,
         reason: validationResult.reason,
         prediction: validationResult.prediction,
-        confidence: validationResult.confidence,
-        message: `Image does not match selected category \"${category}\" (detected \"${validationResult.prediction}\" with ${(validationResult.confidence * 100).toFixed(1)}% confidence).`
+        message: `Image does not match selected category \"${category}\" (detected \"${validationResult.prediction}\").`
       });
     }
+
+    const decision = String(validationResult?.decision || '').trim().toLowerCase();
+    const reviewStatus = toMlReviewStatus(decision);
 
     return res.json({
       valid: true,
       prediction: validationResult.prediction,
-      confidence: validationResult.confidence,
-      message: 'Image matches complaint context'
+      decision,
+      reviewStatus,
+      message: decision && decision !== 'verified'
+        ? 'Possible issue detected, marked for review'
+        : 'Image matches complaint context'
     });
   } catch (error) {
     console.error('Error validating complaint image:', error);
     return res.status(500).json({ error: 'Server error' });
+  } finally {
+    await safelyDeleteUploadedFile(req.file?.path);
   }
 };
 

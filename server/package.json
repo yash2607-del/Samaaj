@@ -27,9 +27,10 @@
     "dev": "kill-port 3000 && nodemon server.js",
     "dev:memory": "cross-env USE_MEMORY_DB=true kill-port 3000 && cross-env USE_MEMORY_DB=true nodemon server.js",
     "start": "node server.js",
-    "seed": "node scripts/seed.js",
+    "seed": "node scripts/seedDepartments.js",
     "reset-password": "node scripts/resetPassword.js",
-    "assign-dept": "node scripts/assignModeratorDept.js",
-    "drop-cols": "node scripts/dropCollections.js"
+    "find-missing-uploads": "node scripts/find_missing_uploads.js",
+    "download-missing-uploads": "node scripts/download_missing_uploads.js",
+    "dump-notifications": "node scripts/dumpNotifications.js"
   }
 }
