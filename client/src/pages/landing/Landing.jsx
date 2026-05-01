@@ -1,109 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { FiCheckCircle, FiMapPin, FiUsers, FiTrendingUp } from 'react-icons/fi';
+import { FiCheckCircle, FiMapPin, FiUsers, FiTrendingUp, FiArrowRight } from 'react-icons/fi';
 import img1 from '../../assets/img1.jpg';
 import img2 from '../../assets/img2.jpg';
 import img3 from '../../assets/img3.jpg';
-import img4 from '../../assets/img4.jpg';
 
 const Landing = () => {
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navLinkStyle = { color: '#555', fontWeight: '600', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', transition: 'color 0.3s ease', padding: '0 15px' };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* Minimalist Navbar */}
-      <nav className="navbar navbar-expand-lg bg-white sticky-top navbar-light" style={{ padding: '1.2rem 0', borderBottom: '1px solid #e0e0e0' }}>
-        <div className="container">
-          <a className="navbar-brand fw-bold" href="#home" style={{ fontSize: '1.4rem', color: '#FFB347', letterSpacing: '-0.5px' }}>
-            Samaaj
+    <div style={{ backgroundColor: '#FAF8F5', color: '#222', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif' }}>
+      {/* Lagom-inspired Navbar */}
+      <nav className={`navbar navbar-expand-lg fixed-top bg-white`} style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.05)', backgroundColor: '#FAF8F5 !important' }}>
+        <div className="container-fluid px-4 px-lg-5">
+          <a className="navbar-brand d-flex align-items-center" href="#home" style={{ color: '#222' }}>
+            <div style={{ width: '30px', height: '30px', border: '3px solid #222', borderBottom: 'none', position: 'relative', marginRight: '10px' }}>
+              <div style={{ position: 'absolute', top: '-10px', left: '10px', width: '15px', height: '15px', borderTop: '3px solid #222', borderRight: '3px solid #222', transform: 'rotate(-45deg)' }}></div>
+            </div>
+            <div>
+              <div className="fw-bold" style={{ fontSize: '1.4rem', lineHeight: '1', letterSpacing: '1px' }}>SAMAAJ</div>
+              <div style={{ fontSize: '0.65rem', letterSpacing: '2px', color: '#666' }}>PLATFORM</div>
+            </div>
           </a>
           <button
             className="navbar-toggler border-0"
             type="button"
-            aria-controls="navbarNav"
-            aria-expanded={isNavOpen}
-            aria-label="Toggle navigation"
-            style={{ boxShadow: 'none' }}
             onClick={() => setIsNavOpen(open => !open)}
           >
             <span className="navbar-toggler-icon"></span>
           </button>
-          <div className={`collapse navbar-collapse ${isNavOpen ? 'show' : ''}`} id="navbarNav">
+          <div className={`collapse navbar-collapse ${isNavOpen ? 'show bg-white p-4 mt-3 rounded shadow-sm' : ''}`} id="navbarNav">
             <ul className="navbar-nav mx-auto align-items-lg-center">
               <li className="nav-item">
-                <a 
-                  className="nav-link px-4" 
-                  href="#features" 
-                  style={{ color: '#616161', fontWeight: '400', fontSize: '0.95rem', transition: 'transform 0.2s ease' }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                  onClick={() => setIsNavOpen(false)}
-                >
-                  Features
-                </a>
+                <a className="nav-link" href="#features" style={{ ...navLinkStyle, color: '#FF7A45' }} onClick={() => setIsNavOpen(false)}>Services</a>
               </li>
               <li className="nav-item">
-                <a 
-                  className="nav-link px-4" 
-                  href="#about" 
-                  style={{ color: '#616161', fontWeight: '400', fontSize: '0.95rem', transition: 'transform 0.2s ease' }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                  onClick={() => setIsNavOpen(false)}
-                >
-                  About
-                </a>
+                <a className="nav-link" href="#about" style={navLinkStyle} onClick={() => setIsNavOpen(false)}>About Us</a>
               </li>
               <li className="nav-item">
-                <a 
-                  className="nav-link px-4" 
-                  href="#contact" 
-                  style={{ color: '#616161', fontWeight: '400', fontSize: '0.95rem', transition: 'transform 0.2s ease' }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                  onClick={() => setIsNavOpen(false)}
-                >
-                  Contact
-                </a>
+                <a className="nav-link" href="#contact" style={navLinkStyle} onClick={() => setIsNavOpen(false)}>Contact</a>
               </li>
             </ul>
-            <div className="d-flex gap-2 align-items-center mt-2 mt-lg-0">
-              <Link 
-                to="/login" 
-                className="btn px-4 py-2" 
-                style={{ 
-                  backgroundColor: 'transparent',
-                  border: '1px solid #FFB347',
-                  color: '#616161',
-                  fontWeight: '500',
-                  fontSize: '0.95rem',
-                  borderRadius: '6px',
-                  transition: 'transform 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                onClick={() => setIsNavOpen(false)}
-              >
-                Login
-              </Link>
-              <Link 
-                to="/signup" 
-                className="btn px-4 py-2" 
-                style={{ 
-                  backgroundColor: 'transparent',
-                  border: '1px solid #FFB347',
-                  color: '#2c2c2c',
-                  fontWeight: '500',
-                  fontSize: '0.95rem',
-                  borderRadius: '6px',
-                  transition: 'transform 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                onClick={() => setIsNavOpen(false)}
-              >
-                Sign up
+            <div className="d-flex gap-4 align-items-center mt-3 mt-lg-0">
+              <div style={{ fontWeight: '600', fontSize: '0.95rem', color: '#444' }}>
+                <Link to="/login" style={{ color: 'inherit', textDecoration: 'none' }}>Login</Link>
+              </div>
+              <div className="d-flex gap-3 text-muted">
+                <span>+91 98765 43210</span>
+              </div>
+              <Link to="/signup" className="btn" style={{ backgroundColor: '#FF7A45', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', letterSpacing: '0.5px', padding: '0.8rem 1.8rem', borderRadius: '0' }}>
+                START NOW
               </Link>
             </div>
           </div>
@@ -111,235 +69,142 @@ const Landing = () => {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="py-5" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', minHeight: '90vh', display: 'flex', alignItems: 'center' }}>
-        <div className="container">
-          <div className="row align-items-center">
-            <div className="col-lg-6 text-center text-lg-start mb-5 mb-lg-0">
-              <h1 className="display-3 fw-bold mb-4" style={{ color: '#1a1a1a', lineHeight: '1.2' }}>
-                Report. Track. Resolve.
-              </h1>
-              <p className="lead mb-4" style={{ color: '#616161', fontSize: '1.25rem' }}>
-                Your civic issues matter. With Samaaj, report local problems, track progress in real-time, 
-                and help build a better community together.
-              </p>
-              <div className="d-flex gap-3 justify-content-center justify-content-lg-start">
-                <Link to="/signup" className="btn btn-lg px-5 py-3" style={{ backgroundColor: '#FFB347', color: 'white', border: 'none', borderRadius: '30px', fontWeight: '600' }}>
-                  Complaint
-                </Link>
-                <Link to="/login" className="btn btn-lg btn-outline-secondary px-5 py-3" style={{ borderRadius: '30px', fontWeight: '600' }}>
-                  Resolve
-                </Link>
-              </div>
-            </div>
-            <div className="col-lg-6">
-              <div className="position-relative">
-                <div id="heroCarousel" className="carousel slide shadow-lg" data-bs-ride="carousel" style={{ borderRadius: '20px', overflow: 'hidden' }}>
-                  <div className="carousel-indicators">
-                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" className="active" aria-current="true" aria-label="Slide 1"></button>
-                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
-                  </div>
-                  <div className="carousel-inner">
-                    <div className="carousel-item active">
-                      <img 
-                        src={img1} 
-                        className="d-block w-100" 
-                        alt="Community Issue" 
-                        style={{ height: '500px', objectFit: 'cover' }}
-                      />
-                    </div>
-                    <div className="carousel-item">
-                      <img 
-                        src={img2} 
-                        className="d-block w-100" 
-                        alt="Civic Problem" 
-                        style={{ height: '500px', objectFit: 'cover' }}
-                      />
-                    </div>
-                    <div className="carousel-item">
-                      <img 
-                        src={img3} 
-                        className="d-block w-100" 
-                        alt="Local Issue" 
-                        style={{ height: '500px', objectFit: 'cover' }}
-                      />
-                    </div>
-                  </div>
-                  <button className="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-                    <span className="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span className="visually-hidden">Previous</span>
-                  </button>
-                  <button className="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-                    <span className="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span className="visually-hidden">Next</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+      <section id="home" style={{ 
+        height: '100vh', 
+        position: 'relative', 
+        overflow: 'hidden',
+        backgroundImage: `url(${img1})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}>
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          pointerEvents: 'none'
+        }}>
+          <h1 style={{ 
+            fontSize: 'clamp(5rem, 20vw, 25rem)', 
+            fontWeight: '900', 
+            color: '#FAF8F5', 
+            margin: 0, 
+            lineHeight: '0.8',
+            letterSpacing: '-0.05em',
+            userSelect: 'none'
+          }}>
+            SAMAAJ
+          </h1>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-5 bg-white">
+      <section id="features" style={{ padding: '8rem 0', backgroundColor: '#0a0a0a' }}>
         <div className="container">
-          <div className="text-center mb-5">
-            <h2 className="fw-bold mb-3" style={{ color: '#1a1a1a' }}>Key Features</h2>
-            <p className="text-muted" style={{ fontSize: '1.1rem' }}>
-              Everything you need to report and track civic issues
-            </p>
+          <div className="row mb-5">
+            <div className="col-lg-8">
+              <h2 className="fw-bolder mb-3" style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', lineHeight: '1', color: '#ffffff', letterSpacing: '-0.03em' }}>OUR CAPABILITIES</h2>
+              <p style={{ fontSize: '1.4rem', color: '#888', fontWeight: '300', maxWidth: '500px' }}>Streamlined tools designed to bridge the gap between citizens and authorities.</p>
+            </div>
           </div>
-          <div className="row g-4">
-            <div className="col-md-6 col-lg-3">
-              <div className="card border-0 shadow-sm h-100 p-4 text-center" style={{ borderRadius: '15px' }}>
-                <div className="mb-3">
-                  <div className="rounded-circle d-inline-flex align-items-center justify-content-center" 
-                       style={{ width: '70px', height: '70px', backgroundColor: '#FFF8F0' }}>
-                    <FiMapPin style={{ color: '#FFB347', fontSize: '30px' }} />
+          <div className="row g-5">
+            {[
+              { icon: <FiMapPin />, title: "Real-Time Action", desc: "Report issues instantly with geolocation and media proof directly from your device." },
+              { icon: <FiTrendingUp />, title: "Live Tracking", desc: "Monitor your reports as they move through resolution stages with total transparency." },
+              { icon: <FiUsers />, title: "Community Driven", desc: "Engage with nearby reports, upvote critical issues, and foster local collaboration." },
+              { icon: <FiCheckCircle />, title: "Verified Results", desc: "Moderators ensure accurate routing and swift resolution by relevant departments." }
+            ].map((feature, idx) => (
+              <div key={idx} className="col-md-6">
+                <div style={{ borderTop: '1px solid #333', padding: '3rem 0', height: '100%' }}>
+                  <div className="mb-4" style={{ fontSize: '2.5rem', color: '#FFB347' }}>
+                    {feature.icon}
                   </div>
+                  <h4 className="fw-bold mb-3" style={{ fontSize: '1.8rem', color: '#fff' }}>{feature.title}</h4>
+                  <p style={{ fontSize: '1.1rem', color: '#999', lineHeight: '1.6', fontWeight: '300' }}>
+                    {feature.desc}
+                  </p>
                 </div>
-                <h5 className="fw-bold mb-3" style={{ color: '#1a1a1a' }}>Real-Time Reporting</h5>
-                <p className="text-muted">
-                  Report issues instantly with photos, location, and detailed descriptions from your device.
-                </p>
               </div>
-            </div>
-            <div className="col-md-6 col-lg-3">
-              <div className="card border-0 shadow-sm h-100 p-4 text-center" style={{ borderRadius: '15px' }}>
-                <div className="mb-3">
-                  <div className="rounded-circle d-inline-flex align-items-center justify-content-center" 
-                       style={{ width: '70px', height: '70px', backgroundColor: '#E3F2FD' }}>
-                    <FiTrendingUp style={{ color: '#2196F3', fontSize: '30px' }} />
-                  </div>
-                </div>
-                <h5 className="fw-bold mb-3" style={{ color: '#1a1a1a' }}>Progress Tracking</h5>
-                <p className="text-muted">
-                  Track your complaints in real-time and get updates on resolution progress.
-                </p>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-3">
-              <div className="card border-0 shadow-sm h-100 p-4 text-center" style={{ borderRadius: '15px' }}>
-                <div className="mb-3">
-                  <div className="rounded-circle d-inline-flex align-items-center justify-content-center" 
-                       style={{ width: '70px', height: '70px', backgroundColor: '#E8F5E9' }}>
-                    <FiUsers style={{ color: '#4CAF50', fontSize: '30px' }} />
-                  </div>
-                </div>
-                <h5 className="fw-bold mb-3" style={{ color: '#1a1a1a' }}>Community Focus</h5>
-                <p className="text-muted">
-                  See nearby issues in your community and collaborate for better solutions.
-                </p>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-3">
-              <div className="card border-0 shadow-sm h-100 p-4 text-center" style={{ borderRadius: '15px' }}>
-                <div className="mb-3">
-                  <div className="rounded-circle d-inline-flex align-items-center justify-content-center" 
-                       style={{ width: '70px', height: '70px', backgroundColor: '#FFF8F0' }}>
-                    <FiCheckCircle style={{ color: '#FFB347', fontSize: '30px' }} />
-                  </div>
-                </div>
-                <h5 className="fw-bold mb-3" style={{ color: '#1a1a1a' }}>Verified Actions</h5>
-                <p className="text-muted">
-                  Moderators verify and route issues to relevant departments for quick resolution.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-5" style={{ backgroundColor: '#f8f9fa' }}>
+      <section id="about" style={{ padding: '8rem 0', backgroundColor: '#050505', borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a' }}>
         <div className="container">
           <div className="row align-items-center">
-            <div className="col-lg-6 mb-4 mb-lg-0">
-              <h2 className="fw-bold mb-4" style={{ color: '#1a1a1a' }}>About Samaaj</h2>
-              <p className="lead mb-4" style={{ color: '#424242' }}>
-                Bridging Citizens and Solutions for a Better Community
-              </p>
-              <p style={{ color: '#616161', lineHeight: '1.8' }}>
-                Samaaj is more than just a civic issue reporting platform—it's a bridge between citizens 
-                and the change they wish to see. With a simple, user-friendly interface, Samaaj empowers 
-                individuals to voice their concerns, report local issues, and track progress transparently.
-              </p>
-              <p style={{ color: '#616161', lineHeight: '1.8' }}>
-                Moderators respond in real-time, ensuring accountability and swift resolution. By fostering 
-                active community participation and streamlined communication, Samaaj brings people and 
-                solutions together to build cleaner, safer, and more responsive neighborhoods.
-              </p>
+            <div className="col-lg-6 mb-5 mb-lg-0">
+              <h2 className="fw-bolder mb-4" style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', lineHeight: '1', color: '#ffffff', letterSpacing: '-0.03em' }}>
+                BRIDGING <br/><span style={{ color: '#888' }}>THE GAP.</span>
+              </h2>
             </div>
             <div className="col-lg-6">
-              <div className="row g-3">
-                <div className="col-6">
-                  <div className="card border-0 shadow-sm p-4 text-center" style={{ borderRadius: '15px', backgroundColor: '#FFF8F0' }}>
-                    <h3 className="fw-bold mb-2" style={{ color: '#FFB347' }}>1000+</h3>
-                    <p className="mb-0" style={{ color: '#616161' }}>Issues Resolved</p>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="card border-0 shadow-sm p-4 text-center" style={{ borderRadius: '15px', backgroundColor: '#E8F5E9' }}>
-                    <h3 className="fw-bold mb-2" style={{ color: '#4CAF50' }}>500+</h3>
-                    <p className="mb-0" style={{ color: '#616161' }}>Active Users</p>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="card border-0 shadow-sm p-4 text-center" style={{ borderRadius: '15px', backgroundColor: '#E3F2FD' }}>
-                    <h3 className="fw-bold mb-2" style={{ color: '#2196F3' }}>50+</h3>
-                    <p className="mb-0" style={{ color: '#616161' }}>Moderators</p>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="card border-0 shadow-sm p-4 text-center" style={{ borderRadius: '15px', backgroundColor: '#F3E5F5' }}>
-                    <h3 className="fw-bold mb-2" style={{ color: '#9C27B0' }}>24/7</h3>
-                    <p className="mb-0" style={{ color: '#616161' }}>Support</p>
-                  </div>
-                </div>
-              </div>
+              <p className="mb-4" style={{ fontSize: '1.4rem', color: '#ccc', lineHeight: '1.6', fontWeight: '300' }}>
+                Samaaj is a modern platform that breaks down the barriers between citizens and local governance. We provide the infrastructure to turn local grievances into actionable, trackable data.
+              </p>
+              <p style={{ fontSize: '1.1rem', color: '#888', lineHeight: '1.8', fontWeight: '300' }}>
+                Through community participation, moderated workflows, and real-time accountability, we bring people and solutions together to build cleaner, safer, and more responsive neighborhoods.
+              </p>
             </div>
+          </div>
+          <div className="row mt-5 pt-5 g-4" style={{ borderTop: '1px solid #222' }}>
+            {[
+              { num: "1000+", label: "Issues Resolved" },
+              { num: "500+", label: "Active Citizens" },
+              { num: "50+", label: "Moderators" },
+              { num: "24/7", label: "Availability" }
+            ].map((stat, i) => (
+              <div key={i} className="col-6 col-md-3">
+                <h3 className="fw-bolder" style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)', color: '#fff' }}>{stat.num}</h3>
+                <p style={{ fontSize: '1rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-5 bg-white">
-        <div className="container">
+      <section id="contact" style={{ padding: '8rem 0', backgroundColor: '#FFB347' }}>
+        <div className="container text-center">
+          <h2 className="fw-bolder mb-4" style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', color: '#000', letterSpacing: '-0.03em' }}>
+            STAY CONNECTED.
+          </h2>
+          <p className="mb-5 mx-auto" style={{ fontSize: '1.4rem', color: '#222', maxWidth: '600px', fontWeight: '500' }}>
+            Join our newsletter and receive the latest updates directly in your inbox.
+          </p>
           <div className="row justify-content-center">
-            <div className="col-lg-8">
-              <div className="card border-0 shadow-lg p-5" style={{ borderRadius: '20px' }}>
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold mb-3" style={{ color: '#1a1a1a' }}>Stay Connected</h2>
-                  <p style={{ color: '#616161', fontSize: '1.1rem' }}>
-                    Enter your email and we'll get back to you with updates, news, and more.
-                  </p>
-                </div>
-                <form className="d-flex flex-column flex-sm-row gap-3">
-                  <input
-                    type="email"
-                    className="form-control form-control-lg"
-                    placeholder="Enter your email"
-                    required
-                    style={{ borderRadius: '12px', border: '2px solid #e0e0e0' }}
-                  />
-                  <button 
-                    type="submit" 
-                    className="btn btn-lg px-5"
-                    style={{ backgroundColor: '#FFB347', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600', whiteSpace: 'nowrap' }}
-                  >
-                    Submit
-                  </button>
-                </form>
-              </div>
+            <div className="col-md-8 col-lg-6">
+              <form className="d-flex flex-column flex-sm-row gap-3">
+                <input
+                  type="email"
+                  className="form-control form-control-lg bg-transparent"
+                  placeholder="EMAIL ADDRESS"
+                  required
+                  style={{ borderRadius: '0', border: 'none', borderBottom: '2px solid #000', color: '#000', boxShadow: 'none', fontWeight: '600', paddingLeft: '0' }}
+                />
+                <button 
+                  type="submit" 
+                  className="btn btn-lg px-5"
+                  style={{ backgroundColor: '#000', color: '#fff', borderRadius: '50px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}
+                >
+                  Subscribe
+                </button>
+              </form>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-4 bg-dark text-white text-center">
-        <div className="container">
-          <p className="mb-0">&copy; 2025 Samaaj. All rights reserved.</p>
+      <footer style={{ padding: '4rem 0', backgroundColor: '#000', borderTop: '1px solid #1a1a1a' }}>
+        <div className="container d-flex flex-column flex-md-row justify-content-between align-items-center">
+          <h4 className="fw-bold mb-3 mb-md-0" style={{ color: '#fff', letterSpacing: '-1px' }}>Samaaj<span style={{ color: '#FFB347' }}>.</span></h4>
+          <p className="mb-0" style={{ color: '#666', fontSize: '0.9rem' }}>&copy; 2026 Samaaj Platform. All rights reserved.</p>
         </div>
       </footer>
     </div>

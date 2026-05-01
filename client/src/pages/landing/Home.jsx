@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { FiUser, FiLogOut } from 'react-icons/fi';
-import img1 from '../../assets/img1.jpg';
-import img2 from '../../assets/img2.jpg';
-import img3 from '../../assets/img3.jpg';
+import { FiUser, FiLogOut, FiArrowRight } from 'react-icons/fi';
 import './landing.css';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
   const raw = localStorage.getItem('user');
   const user = raw ? JSON.parse(raw) : null;
   const role = (user?.role || '').toLowerCase();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -29,78 +35,64 @@ const Home = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <nav className="navbar navbar-expand-lg bg-white sticky-top" style={{ padding: '1.2rem 0', borderBottom: '1px solid #e0e0e0' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#050505', color: '#f3f3f3', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif' }}>
+      
+      {/* Lagom-inspired Navbar */}
+      <nav className={`navbar navbar-expand-lg fixed-top ${scrolled ? 'bg-black shadow-sm' : 'bg-transparent'}`} style={{ padding: scrolled ? '1rem 0' : '2rem 0', transition: 'all 0.4s ease' }}>
         <div className="container">
-          <a className="navbar-brand fw-bold" href="#home" style={{ fontSize: '1.4rem', color: '#FFB347', letterSpacing: '-0.5px' }}>
-            Samaaj
+          <a className="navbar-brand fw-bold" href="#home" style={{ fontSize: '2rem', color: '#f3f3f3', letterSpacing: '-1px' }}>
+            Samaaj<span style={{ color: '#FFB347' }}>.</span>
           </a>
           <div className="d-flex ms-auto align-items-center gap-3">
-            {user ? (
+            {user && (
               <>
-                <Link to={/moderator/i.test(role) ? '/moderator-profile' : '/user-profile'} className="btn btn-light rounded-circle d-flex align-items-center justify-content-center" style={{ width: '44px', height: '44px' }} title="Profile">
+                <Link to={/moderator/i.test(role) ? '/moderator-profile' : '/user-profile'} className="btn d-flex align-items-center justify-content-center" style={{ backgroundColor: '#1a1a1a', color: '#fff', border: '1px solid #333', width: '44px', height: '44px', borderRadius: '50%', transition: 'all 0.3s ease' }} title="Profile">
                   <FiUser />
                 </Link>
-                <button className="btn btn-outline-secondary" onClick={handleLogout} title="Logout">
+                <button className="btn" onClick={handleLogout} style={{ backgroundColor: '#1a1a1a', color: '#fff', border: '1px solid #333', width: '44px', height: '44px', borderRadius: '50%', transition: 'all 0.3s ease' }} title="Logout">
                   <FiLogOut />
                 </button>
               </>
-            ) : (
-              <></>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Reuse Landing hero and sections with minor role-based tweaks */}
-      <section id="home" className="py-5" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', minHeight: '90vh', display: 'flex', alignItems: 'center' }}>
-        <div className="container">
-          <div className="row align-items-center">
-            <div className="col-lg-6 text-center text-lg-start mb-5 mb-lg-0">
-              <h1 className="display-3 fw-bold mb-4" style={{ color: '#1a1a1a', lineHeight: '1.2' }}>
-                {role === 'moderator' ? 'Moderator Dashboard' : 'Welcome to Samaaj'}
+      {/* Hero Section */}
+      <section id="home" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', paddingTop: '100px', position: 'relative', overflow: 'hidden' }}>
+        <div className="container position-relative z-1">
+          <div className="row">
+            <div className="col-12 col-lg-10">
+              <h1 className="fw-bolder mb-4" style={{ fontSize: 'clamp(3rem, 8vw, 7.5rem)', lineHeight: '0.9', letterSpacing: '-0.04em', color: '#ffffff' }}>
+                {role === 'moderator' ? 'MANAGE.' : 'REPORT.'}<br/>
+                {role === 'moderator' ? 'VERIFY.' : 'TRACK.'}<br/>
+                <span style={{ color: '#FFB347' }}>{role === 'moderator' ? 'RESOLVE.' : 'RESOLVE.'}</span>
               </h1>
-              <p className="lead mb-4" style={{ color: '#616161', fontSize: '1.25rem' }}>
+              <p className="mb-5" style={{ fontSize: 'clamp(1.2rem, 2vw, 1.8rem)', color: '#a0a0a0', maxWidth: '700px', lineHeight: '1.4', fontWeight: '300' }}>
                 {role === 'moderator'
-                  ? 'Manage and verify reported issues in your assigned areas.'
-                  : 'Report local problems, track progress, and help build a better community.'}
+                  ? 'Access your moderation dashboard. Manage, verify, and seamlessly route issues raised by citizens in your assigned areas.'
+                  : 'Elevating civic engagement. Report local issues and drive real-time community transformation through transparent tracking.'}
               </p>
-              <div className="d-flex gap-3 justify-content-center justify-content-lg-start">
+              <div className="d-flex gap-4 flex-wrap">
                 {role !== 'moderator' && (
-                  <Link to="/complaint" className="btn btn-lg px-5 py-3" style={{ backgroundColor: '#FFB347', color: 'white', border: 'none', borderRadius: '30px', fontWeight: '600' }}>
-                    File Complaint
+                  <Link to="/complaint" className="btn btn-lg d-flex align-items-center gap-2" style={{ backgroundColor: '#FFB347', color: '#050505', borderRadius: '50px', padding: '1rem 2.5rem', fontWeight: '600', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    File Complaint <FiArrowRight />
                   </Link>
                 )}
-                <Link to={role === 'moderator' ? '/moderator-complaints' : '/dashboard'} className="btn btn-lg btn-outline-secondary px-5 py-3" style={{ borderRadius: '30px', fontWeight: '600' }}>
+                <Link to={role === 'moderator' ? '/moderator-complaints' : '/dashboard'} className="btn btn-lg px-4" style={{ backgroundColor: 'transparent', color: '#f3f3f3', border: '1px solid #444', borderRadius: '50px', padding: '1rem 2.5rem', fontWeight: '500', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
                   {role === 'moderator' ? 'Manage Complaints' : 'Track Issues'}
                 </Link>
               </div>
             </div>
-            <div className="col-lg-6">
-              <div className="position-relative">
-                <div id="heroCarousel" className="carousel slide shadow-lg" data-bs-ride="carousel" style={{ borderRadius: '20px', overflow: 'hidden' }}>
-                  <div className="carousel-inner">
-                    <div className="carousel-item active">
-                      <img src={img1} className="d-block w-100" alt="" style={{ height: '500px', objectFit: 'cover' }} />
-                    </div>
-                    <div className="carousel-item">
-                      <img src={img2} className="d-block w-100" alt="" style={{ height: '500px', objectFit: 'cover' }} />
-                    </div>
-                    <div className="carousel-item">
-                      <img src={img3} className="d-block w-100" alt="" style={{ height: '500px', objectFit: 'cover' }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
+        <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(255,179,71,0.06) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%', zIndex: 0, pointerEvents: 'none' }}></div>
       </section>
 
       {/* Footer */}
-      <footer className="py-4 bg-dark text-white text-center">
-        <div className="container">
-          <p className="mb-0">&copy; 2025 Samaaj. All rights reserved.</p>
+      <footer style={{ padding: '2rem 0', backgroundColor: '#000', borderTop: '1px solid #1a1a1a' }}>
+        <div className="container d-flex flex-column flex-md-row justify-content-between align-items-center text-center">
+          <p className="mb-0" style={{ color: '#666', fontSize: '0.9rem' }}>&copy; 2026 Samaaj Platform. All rights reserved.</p>
         </div>
       </footer>
     </div>
