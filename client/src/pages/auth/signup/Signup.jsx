@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
 import axios from "axios";
 import { FiUser, FiMail, FiLock, FiMapPin, FiTag, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
-import "./signup.css";
 
 function Signup() {
   const [role, setRole] = useState("Citizen");
@@ -95,263 +93,181 @@ function Signup() {
   };
 
   return (
-    <div className="auth-page signup-page" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-md-8 col-lg-6">
-            <Link to="/" className="btn btn-link text-decoration-none mb-3" style={{ color: '#616161' }}>
-              <FiArrowLeft className="me-2" />
-              Back to Home
-            </Link>
-            
-            <div className="card border-0 shadow-lg" style={{ borderRadius: '20px' }}>
-              <div className="card-body p-5">
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold mb-2" style={{ color: '#1a1a1a' }}>Create Account</h2>
-                  <p style={{ color: '#616161' }}>Join Samaaj and make a difference</p>
-                </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F9F9F9', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif' }}>
+      <div style={{ width: '100%', maxWidth: '600px' }}>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', color: '#1A1A1A', textDecoration: 'none', marginBottom: '2rem', fontSize: '0.9rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <FiArrowLeft style={{ marginRight: '0.5rem' }} /> Back
+        </Link>
+        
+        <div style={{ backgroundColor: '#FFF', padding: '3rem', border: '1px solid #EAEAEA' }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: '400', color: '#1A1A1A', margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>Create Account</h2>
+            <p style={{ color: '#888', margin: 0, fontSize: '0.9rem' }}>Join Samaaj and make a difference.</p>
+          </div>
 
-                {/* Role Toggle */}
-                <div className="mb-4">
-                  <div className="btn-group w-100" role="group">
-                    <button
-                      type="button"
-                      className={`btn ${role === "Citizen" ? "" : "btn-outline-primary"}`}
-                      onClick={() => toggleRole("Citizen")}
-                      style={role === "Citizen" ? { 
-                        backgroundColor: '#FFB347', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: '12px 0 0 12px',
-                        fontWeight: '600'
-                      } : {
-                        borderColor: '#e0e0e0',
-                        color: '#616161',
-                        borderRadius: '12px 0 0 12px'
-                      }}
-                    >
-                      Citizen
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn ${role === "Moderator" ? "" : "btn-outline-primary"}`}
-                      onClick={() => toggleRole("Moderator")}
-                      style={role === "Moderator" ? { 
-                        backgroundColor: '#FFB347', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: '0 12px 12px 0',
-                        fontWeight: '600'
-                      } : {
-                        borderColor: '#e0e0e0',
-                        color: '#616161',
-                        borderRadius: '0 12px 12px 0'
-                      }}
-                    >
-                      Moderator
-                    </button>
-                  </div>
-                </div>
+          <div style={{ display: 'flex', marginBottom: '2rem', border: '1px solid #EAEAEA' }}>
+            <button
+              type="button"
+              onClick={() => toggleRole("Citizen")}
+              style={{ flex: 1, padding: '0.8rem', border: 'none', backgroundColor: role === "Citizen" ? '#1A1A1A' : '#FFF', color: role === "Citizen" ? '#FFF' : '#888', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer' }}
+            >
+              Citizen
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleRole("Moderator")}
+              style={{ flex: 1, padding: '0.8rem', border: 'none', backgroundColor: role === "Moderator" ? '#1A1A1A' : '#FFF', color: role === "Moderator" ? '#FFF' : '#888', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer' }}
+            >
+              Moderator
+            </button>
+          </div>
 
-                {error && (
-                  <div className="alert alert-danger d-flex align-items-center" style={{ borderRadius: '12px' }}>
-                    <i className="bi bi-exclamation-circle me-2"></i>
-                    <span>{error}</span>
-                  </div>
-                )}
-                {success && (
-                  <div className="alert alert-success d-flex align-items-center" style={{ borderRadius: '12px' }}>
-                    <i className="bi bi-check-circle me-2"></i>
-                    <span>{success}</span>
-                  </div>
-                )}
+          {error && (
+            <div style={{ backgroundColor: '#FFF0F0', border: '1px solid #FFD0D0', color: '#D8000C', padding: '1rem', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              {error}
+            </div>
+          )}
+          {success && (
+            <div style={{ backgroundColor: '#F0FFF0', border: '1px solid #D0FFD0', color: '#008000', padding: '1rem', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              {success}
+            </div>
+          )}
 
-                <form onSubmit={handleSubmit}>
-                  {/* Common Fields */}
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold" style={{ color: '#424242' }}>Full Name</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                        <FiUser style={{ color: '#616161' }} />
-                      </span>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter your full name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        required
-                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold" style={{ color: '#424242' }}>Email Address</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                        <FiMail style={{ color: '#616161' }} />
-                      </span>
-                      <input
-                        type="email"
-                        className="form-control"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-semibold" style={{ color: '#424242' }}>Password</label>
-                      <div className="input-group">
-                        <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                          <FiLock style={{ color: '#616161' }} />
-                        </span>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          className="form-control"
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRight: 'none' }}
-                        />
-                        <span 
-                          className="input-group-text bg-white" 
-                          onClick={() => setShowPassword(!showPassword)}
-                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', cursor: 'pointer' }}
-                        >
-                          {showPassword ? <FiEyeOff style={{ color: '#616161' }} /> : <FiEye style={{ color: '#616161' }} />}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-semibold" style={{ color: '#424242' }}>Confirm Password</label>
-                      <div className="input-group">
-                        <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                          <FiLock style={{ color: '#616161' }} />
-                        </span>
-                        <input
-                          type={showConfirmPassword ? "text" : "password"}
-                          className="form-control"
-                          placeholder="••••••••"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          required
-                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRight: 'none' }}
-                        />
-                        <span 
-                          className="input-group-text bg-white" 
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', cursor: 'pointer' }}
-                        >
-                          {showConfirmPassword ? <FiEyeOff style={{ color: '#616161' }} /> : <FiEye style={{ color: '#616161' }} />}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Role-Specific Fields */}
-                  {role === "Citizen" && (
-                    <>
-                      <div className="mb-3">
-                        <label className="form-label fw-semibold" style={{ color: '#424242' }}>District (Delhi)</label>
-                        <div className="input-group">
-                          <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                            <FiMapPin style={{ color: '#616161' }} />
-                          </span>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="e.g., South Delhi"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            required
-                            style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
-                          />
-                        </div>
-                      </div>
-
-                    </>
-                  )}
-
-                  {role === "Moderator" && (
-                    <>
-                      <div className="mb-3">
-                        <label className="form-label fw-semibold" style={{ color: '#424242' }}>Department</label>
-                        <div className="input-group">
-                          <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                            <FiTag style={{ color: '#616161' }} />
-                          </span>
-                          <select
-                            className="form-select"
-                            value={department}
-                            onChange={(e) => setDepartment(e.target.value)}
-                            required
-                            style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
-                          >
-                                <option value="">Select Department</option>
-                                {departments.map(d => (
-                                  <option key={d._id || d.name} value={d._id || d.name}>{d.name}{d.category ? ` — ${d.category}` : ''}</option>
-                                ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="mb-3">
-                        <label className="form-label fw-semibold" style={{ color: '#424242' }}>Assigned District/Zone (Delhi)</label>
-                        <div className="input-group">
-                          <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                            <FiMapPin style={{ color: '#616161' }} />
-                          </span>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="e.g., South Delhi"
-                            value={assignedArea}
-                            onChange={(e) => setAssignedArea(e.target.value)}
-                            required
-                            style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  <button 
-                    type="submit" 
-                    className="btn btn-lg w-100 mb-3"
-                    disabled={loading}
-                    style={{ backgroundColor: '#FFB347', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600' }}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Creating Account...
-                      </>
-                    ) : 'Sign Up'}
-                  </button>
-
-                  <div className="text-center">
-                    <p className="mb-0" style={{ color: '#616161' }}>
-                      Already have an account? <Link to="/login" style={{ color: '#FFB347', fontWeight: '600', textDecoration: 'none' }}>Login</Link>
-                    </p>
-                  </div>
-                </form>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Full Name</label>
+              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiUser /></span>
+                <input
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                />
               </div>
             </div>
 
-            <div className="text-center mt-3">
-              <small style={{ color: '#616161' }}>
-                © 2025 Samaaj. All rights reserved.
-              </small>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Email Address</label>
+              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiMail /></span>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                />
+              </div>
             </div>
-          </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Password</label>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                  <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiLock /></span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                  />
+                  <span onClick={() => setShowPassword(!showPassword)} style={{ padding: '0.8rem', color: '#888', cursor: 'pointer', display: 'flex' }}>
+                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Confirm Password</label>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                  <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiLock /></span>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                  />
+                  <span onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: '0.8rem', color: '#888', cursor: 'pointer', display: 'flex' }}>
+                    {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {role === "Citizen" && (
+              <div style={{ marginBottom: '2rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>District (Delhi)</label>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                  <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiMapPin /></span>
+                  <input
+                    type="text"
+                    placeholder="e.g., South Delhi"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    required
+                    style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {role === "Moderator" && (
+              <>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</label>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                    <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiTag /></span>
+                    <select
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                      required
+                      style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem', backgroundColor: 'transparent' }}
+                    >
+                      <option value="">Select Department</option>
+                      {departments.map(d => (
+                        <option key={d._id || d.name} value={d._id || d.name}>{d.name}{d.category ? ` — ${d.category}` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '2rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Assigned District/Zone (Delhi)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                    <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiMapPin /></span>
+                    <input
+                      type="text"
+                      placeholder="e.g., South Delhi"
+                      value={assignedArea}
+                      onChange={(e) => setAssignedArea(e.target.value)}
+                      required
+                      style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              style={{ width: '100%', padding: '1rem', backgroundColor: '#1A1A1A', color: '#FFF', border: 'none', fontSize: '0.9rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', cursor: loading ? 'not-allowed' : 'pointer' }}
+            >
+              {loading ? 'Creating Account...' : 'Sign Up'}
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.9rem', color: '#888' }}>
+              Already have an account? <Link to="/login" style={{ color: '#1A1A1A', fontWeight: '600', textDecoration: 'none' }}>Login</Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>

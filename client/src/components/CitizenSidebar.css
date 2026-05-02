@@ -23,7 +23,7 @@
 
 .logo-icon {
   font-size: 1.3rem;
-  background: linear-gradient(135deg, #FFB347, #FFD8A8);
+  background: #1A1A1A;
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 2px 8px rgba(255, 111, 0, 0.2);
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -90,7 +90,7 @@
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #FFB347, #FFD8A8);
+  background: #1A1A1A;
   color: white;
   font-weight: 600;
 }
@@ -192,7 +192,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FFB347, #FFD8A8);
+  background: #1A1A1A;
   display: flex;
   align-items: center;
   justify-content: center;

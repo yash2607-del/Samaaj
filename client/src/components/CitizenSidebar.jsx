@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FiHome, FiPlusCircle, FiSearch, FiUser, FiLogOut, FiGrid, FiSettings, FiHelpCircle } from 'react-icons/fi';
+import { FiHome, FiPlusCircle, FiSearch, FiUser, FiLogOut, FiGrid, FiSettings, FiHelpCircle, FiMap } from 'react-icons/fi';
 import "./CitizenSidebar.css";
 
 function CitizenSidebar() {
@@ -12,6 +12,7 @@ function CitizenSidebar() {
     { path: "/nearby-complaints", label: "Nearby Issues", icon: FiSearch },
     { path: "/complaint", label: "Submit Issue", icon: FiPlusCircle },
     { path: "/track-issue", label: "Track Issues", icon: FiGrid },
+    { path: "/explore", label: "Explore Heatmap", icon: FiMap },
   ];
 
   const accountItems = [

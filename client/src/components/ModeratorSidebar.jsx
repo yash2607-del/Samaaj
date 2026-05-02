@@ -10,6 +10,7 @@ function ModeratorSidebar() {
   const generalItems = [
     { path: "/moderator-dashboard", label: "Dashboard", icon: FiHome },
     { path: "/moderator-complaints", label: "Complaints", icon: FiClipboard },
+    { path: "/analytics", label: "Analytics", icon: FiBarChart2 },
   ];
 
   const accountItems = [

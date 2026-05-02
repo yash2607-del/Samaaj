@@ -3,9 +3,9 @@ import { toastError } from "../../utils/toast";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import ModeratorSidebar from "../../components/ModeratorSidebar";
-import { 
-  FiClipboard, FiCheckCircle, FiClock, 
-  FiSearch, FiFilter, FiAlertCircle, 
+import {
+  FiClipboard, FiCheckCircle, FiClock,
+  FiSearch, FiFilter, FiAlertCircle,
   FiEye, FiInbox, FiTrendingUp, FiUser,
   FiSettings, FiGrid, FiLogOut
 } from 'react-icons/fi';
@@ -39,7 +39,7 @@ const ModeratorDashboard = () => {
         const data = res.data.data || res.data;
         setComplaints(data);
         setFilteredComplaints(data);
-        
+
         // Calculate stats
         const total = data.length;
         const resolved = data.filter(c => c.status === 'Resolved').length;
@@ -49,7 +49,7 @@ const ModeratorDashboard = () => {
       .catch((err) => {
         console.error("Error fetching complaints:", err.response?.data || err.message);
         console.error("Status code:", err.response?.status);
-        
+
         if (err.response?.status === 401) {
           toastError("Your session has expired. Please login again.");
           localStorage.clear();
@@ -78,7 +78,7 @@ const ModeratorDashboard = () => {
         status: newStatus,
         moderatorEmail: user.email
       }, { headers: { Authorization: `Bearer ${token}` } });
-      
+
       console.log('Update response:', response.data);
       // Refresh complaints after update
       fetchComplaints(token);
@@ -109,10 +109,10 @@ const ModeratorDashboard = () => {
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     const token = localStorage.getItem("token");
-    
+
     console.log("Stored user:", storedUser);
     console.log("Token exists:", !!token);
-    
+
     setUser(storedUser);
 
     if (!storedUser || !token || !/moderator/i.test(storedUser.role || '')) {
@@ -129,7 +129,7 @@ const ModeratorDashboard = () => {
       .then((res) => {
         console.log("Profile response:", res.data);
         const deptData = res.data.user?.department;
-        
+
         // Handle department - if it's an object with name, use it; if it's a string ID, fetch departments
         if (deptData) {
           if (typeof deptData === 'object' && deptData.name) {
@@ -184,7 +184,7 @@ const ModeratorDashboard = () => {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(c => 
+      filtered = filtered.filter(c =>
         c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -219,12 +219,12 @@ const ModeratorDashboard = () => {
       icon: FiClock,
       style: { backgroundColor: "#FFE8CC", color: "#1a1a1a", border: "1px solid #FFB347" }
     },
-    Resolved: { 
-      icon: FiCheckCircle, 
+    Resolved: {
+      icon: FiCheckCircle,
       style: { backgroundColor: "#C8E6C9", color: "#1b5e20", border: "1px solid #4CAF50" }
     },
-    Rejected: { 
-      icon: FiAlertCircle, 
+    Rejected: {
+      icon: FiAlertCircle,
       style: { backgroundColor: "#FFCDD2", color: "#c62828", border: "1px solid #F44336" }
     }
   };
@@ -238,12 +238,12 @@ const ModeratorDashboard = () => {
         <section className="py-3 px-4 bg-white border-bottom" style={{ position: "sticky", top: 0, zIndex: 100 }}>
           <div className="d-flex align-items-center justify-content-end gap-3">
             <div className="position-relative">
-              <button 
+              <button
                 className="btn btn-light border-0 d-flex align-items-center gap-2"
                 style={{ borderRadius: "10px", padding: "0.5rem 0.75rem" }}
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
               >
-                <div 
+                <div
                   className="rounded-circle d-flex align-items-center justify-content-center bg-warning"
                   style={{ width: "32px", height: "32px" }}
                 >
@@ -254,7 +254,7 @@ const ModeratorDashboard = () => {
                 </span>
               </button>
               {showUserDropdown && (
-                <div 
+                <div
                   className="position-absolute end-0 mt-2 bg-white shadow-lg rounded-3"
                   style={{ width: "200px", zIndex: 1000, border: "1px solid #e0e0e0" }}
                 >
@@ -300,9 +300,9 @@ const ModeratorDashboard = () => {
 
         {/* Hero Balance Section */}
         <section className="py-4 px-4">
-          <div 
-            className="card border-0 shadow-sm position-relative overflow-hidden" 
-            style={{ 
+          <div
+            className="card border-0 shadow-sm position-relative overflow-hidden"
+            style={{
               background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 50%, #FFE4C4 100%)",
               borderRadius: "20px",
               minHeight: "200px"
@@ -321,20 +321,20 @@ const ModeratorDashboard = () => {
                 </div>
               </div>
             </div>
-            <div style={{ 
-              position: "absolute", 
-              width: "300px", 
-              height: "300px", 
-              borderRadius: "50%", 
+            <div style={{
+              position: "absolute",
+              width: "300px",
+              height: "300px",
+              borderRadius: "50%",
               background: "rgba(255,255,255,0.08)",
               right: "-100px",
               bottom: "-100px"
             }}></div>
-            <div style={{ 
-              position: "absolute", 
-              width: "150px", 
-              height: "150px", 
-              borderRadius: "50%", 
+            <div style={{
+              position: "absolute",
+              width: "150px",
+              height: "150px",
+              borderRadius: "50%",
               background: "rgba(255,255,255,0.06)",
               right: "50px",
               top: "-50px"
@@ -476,8 +476,8 @@ const ModeratorDashboard = () => {
                   <FiInbox style={{ fontSize: "3rem", color: "#e0e0e0", marginBottom: "1rem" }} />
                   <h6 className="fw-semibold text-muted">No complaints found</h6>
                   <p className="text-muted small mb-0">
-                    {searchTerm || categoryFilter !== "All" || statusFilter !== "All" 
-                      ? "Try adjusting your filters" 
+                    {searchTerm || categoryFilter !== "All" || statusFilter !== "All"
+                      ? "Try adjusting your filters"
                       : "No complaints available"}
                   </p>
                 </div>
@@ -486,23 +486,23 @@ const ModeratorDashboard = () => {
                   {filteredComplaints.map((complaint, index) => {
                     const statusConfig = statusStyles[complaint.status] || statusStyles.Pending;
                     const StatusIcon = statusConfig.icon;
-                    
+
                     return (
-                      <div 
-                        key={complaint._id} 
+                      <div
+                        key={complaint._id}
                         className="d-flex justify-content-between align-items-center py-3"
-                        style={{ 
+                        style={{
                           borderBottom: index < filteredComplaints.length - 1 ? "1px solid #f0f0f0" : "none",
                           cursor: "pointer"
                         }}
                         onClick={() => window.location.href = `/moderator-complaints?id=${complaint._id}`}
                       >
                         <div className="d-flex align-items-center gap-3 flex-grow-1">
-                          <div 
+                          <div
                             className="rounded-circle d-flex align-items-center justify-content-center"
-                            style={{ 
-                              width: "45px", 
-                              height: "45px", 
+                            style={{
+                              width: "45px",
+                              height: "45px",
                               backgroundColor: "#FFF8F0",
                               flexShrink: 0
                             }}
@@ -523,9 +523,9 @@ const ModeratorDashboard = () => {
                           </div>
                         </div>
                         <div className="d-flex align-items-center gap-3">
-                          <span 
+                          <span
                             className="badge px-3 py-2"
-                            style={{ 
+                            style={{
                               backgroundColor: statusConfig.style.backgroundColor,
                               color: statusConfig.style.color,
                               border: statusConfig.style.border,

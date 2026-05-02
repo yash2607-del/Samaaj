@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../../../api.js";
 import { FiMail, FiLock, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
-import "../signup/signup.css";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -50,102 +49,70 @@ function Login() {
   };
 
   return (
-    <div className="auth-page login-page" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-md-6 col-lg-5 col-xl-4">
-            <Link to="/" className="btn btn-link text-decoration-none mb-3" style={{ color: '#616161' }}>
-              <FiArrowLeft className="me-2" />
-              Back to Home
-            </Link>
-            
-            <div className="card border-0 shadow-lg" style={{ borderRadius: '20px' }}>
-              <div className="card-body p-5">
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold mb-2" style={{ color: '#1a1a1a' }}>Welcome Back</h2>
-                  <p style={{ color: '#616161' }}>Sign in to continue to Samaaj</p>
-                </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F9F9F9', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif' }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', color: '#1A1A1A', textDecoration: 'none', marginBottom: '2rem', fontSize: '0.9rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <FiArrowLeft style={{ marginRight: '0.5rem' }} /> Back
+        </Link>
+        
+        <div style={{ backgroundColor: '#FFF', padding: '3rem', border: '1px solid #EAEAEA' }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: '400', color: '#1A1A1A', margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>Welcome Back</h2>
+            <p style={{ color: '#888', margin: 0, fontSize: '0.9rem' }}>Sign in to continue to Samaaj.</p>
+          </div>
 
-                {error && (
-                  <div className="alert alert-danger d-flex align-items-center" style={{ borderRadius: '12px' }}>
-                    <i className="bi bi-exclamation-circle me-2"></i>
-                    <span>{error}</span>
-                  </div>
-                )}
+          {error && (
+            <div style={{ backgroundColor: '#FFF0F0', border: '1px solid #FFD0D0', color: '#D8000C', padding: '1rem', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              {error}
+            </div>
+          )}
 
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold" style={{ color: '#424242' }}>Email Address</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                        <FiMail style={{ color: '#616161' }} />
-                      </span>
-                      <input
-                        type="email"
-                        className="form-control"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        required
-                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', padding: '0.75rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold" style={{ color: '#424242' }}>Password</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-white" style={{ border: '2px solid #e0e0e0', borderRight: 'none', borderRadius: '12px 0 0 12px' }}>
-                        <FiLock style={{ color: '#616161' }} />
-                      </span>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        className="form-control"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required
-                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRight: 'none', padding: '0.75rem' }}
-                      />
-                      <span 
-                        className="input-group-text bg-white" 
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{ border: '2px solid #e0e0e0', borderLeft: 'none', borderRadius: '0 12px 12px 0', cursor: 'pointer' }}
-                      >
-                        {showPassword ? <FiEyeOff style={{ color: '#616161' }} /> : <FiEye style={{ color: '#616161' }} />}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    className="btn btn-lg w-100 mb-3"
-                    disabled={loading}
-                    style={{ backgroundColor: '#FFB347', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600', padding: '0.75rem' }}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Signing in...
-                      </>
-                    ) : 'Sign In'}
-                  </button>
-
-                  <div className="text-center">
-                    <p className="mb-0" style={{ color: '#616161' }}>
-                      Don't have an account? <Link to="/signup" style={{ color: '#FFB347', fontWeight: '600', textDecoration: 'none' }}>Sign Up</Link>
-                    </p>
-                  </div>
-                </form>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Email</label>
+              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiMail /></span>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                />
               </div>
             </div>
 
-            <div className="text-center mt-3">
-              <small style={{ color: '#616161' }}>
-                © 2025 Samaaj. All rights reserved.
-              </small>
+            <div style={{ marginBottom: '2rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Password</label>
+              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
+                <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiLock /></span>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  style={{ flex: 1, border: 'none', padding: '0.8rem', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                />
+                <span onClick={() => setShowPassword(!showPassword)} style={{ padding: '0.8rem', color: '#888', cursor: 'pointer', display: 'flex' }}>
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </span>
+              </div>
             </div>
-          </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              style={{ width: '100%', padding: '1rem', backgroundColor: '#1A1A1A', color: '#FFF', border: 'none', fontSize: '0.9rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', cursor: loading ? 'not-allowed' : 'pointer' }}
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.9rem', color: '#888' }}>
+              Don't have an account? <Link to="/signup" style={{ color: '#1A1A1A', fontWeight: '600', textDecoration: 'none' }}>Sign Up</Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>

@@ -4,9 +4,9 @@ import { filterByCategory, filterByStatus, searchComplaints } from "../../utils/
 import CitizenSidebar from "../../components/CitizenSidebar";
 import NotificationPanel from "../../components/NotificationPanel";
 import API from "../../api.js";
-import { 
-  FiCheckCircle, FiClock, 
-  FiSearch, FiFilter, FiAlertCircle, 
+import {
+  FiCheckCircle, FiClock,
+  FiSearch, FiFilter, FiAlertCircle,
   FiInbox, FiTrendingUp, FiBell, FiUser,
   FiSettings, FiGrid, FiLogOut
 } from 'react-icons/fi';
@@ -132,12 +132,12 @@ const Dashboard = () => {
       icon: FiClock,
       style: { backgroundColor: "#FFE8CC", color: "#1a1a1a", border: "1px solid #FFB347" }
     },
-    Resolved: { 
-      icon: FiCheckCircle, 
+    Resolved: {
+      icon: FiCheckCircle,
       style: { backgroundColor: "#C8E6C9", color: "#1b5e20", border: "1px solid #4CAF50" }
     },
-    Rejected: { 
-      icon: FiAlertCircle, 
+    Rejected: {
+      icon: FiAlertCircle,
       style: { backgroundColor: "#FFCDD2", color: "#c62828", border: "1px solid #F44336" }
     }
   };
@@ -150,7 +150,7 @@ const Dashboard = () => {
         {/* Top Navigation Bar */}
         <section className="py-3 px-4 bg-white border-bottom" style={{ position: "sticky", top: 0, zIndex: 100 }}>
           <div className="d-flex align-items-center justify-content-end gap-3">
-            <button 
+            <button
               className="btn btn-light border-0 position-relative"
               style={{ borderRadius: "50%", width: "42px", height: "42px", padding: 0 }}
               onClick={() => setShowNotifications(!showNotifications)}
@@ -163,12 +163,12 @@ const Dashboard = () => {
               )}
             </button>
             <div className="position-relative">
-              <button 
+              <button
                 className="btn btn-light border-0 d-flex align-items-center gap-2"
                 style={{ borderRadius: "10px", padding: "0.5rem 0.75rem" }}
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
               >
-                <div 
+                <div
                   className="rounded-circle d-flex align-items-center justify-content-center bg-warning"
                   style={{ width: "32px", height: "32px" }}
                 >
@@ -179,7 +179,7 @@ const Dashboard = () => {
                 </span>
               </button>
               {showUserDropdown && (
-                <div 
+                <div
                   className="position-absolute end-0 mt-2 bg-white shadow-lg rounded-3"
                   style={{ width: "200px", zIndex: 1000, border: "1px solid #e0e0e0" }}
                 >
@@ -225,9 +225,9 @@ const Dashboard = () => {
 
         {/* Hero Balance Section */}
         <section className="py-4 px-4">
-          <div 
-            className="card border-0 shadow-sm position-relative overflow-hidden" 
-            style={{ 
+          <div
+            className="card border-0 shadow-sm position-relative overflow-hidden"
+            style={{
               background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 50%, #FFE4C4 100%)",
               borderRadius: "20px",
               minHeight: "200px"
@@ -244,23 +244,23 @@ const Dashboard = () => {
                     <span className="opacity-75">resolution rate</span>
                   </p>
                 </div>
-               
+
               </div>
             </div>
-            <div style={{ 
-              position: "absolute", 
-              width: "300px", 
-              height: "300px", 
-              borderRadius: "50%", 
+            <div style={{
+              position: "absolute",
+              width: "300px",
+              height: "300px",
+              borderRadius: "50%",
               background: "rgba(255,255,255,0.08)",
               right: "-100px",
               bottom: "-100px"
             }}></div>
-            <div style={{ 
-              position: "absolute", 
-              width: "150px", 
-              height: "150px", 
-              borderRadius: "50%", 
+            <div style={{
+              position: "absolute",
+              width: "150px",
+              height: "150px",
+              borderRadius: "50%",
               background: "rgba(255,255,255,0.06)",
               right: "50px",
               top: "-50px"
@@ -402,8 +402,8 @@ const Dashboard = () => {
                   <FiInbox style={{ fontSize: "3rem", color: "#e0e0e0", marginBottom: "1rem" }} />
                   <h6 className="fw-semibold text-muted">No complaints found</h6>
                   <p className="text-muted small mb-0">
-                    {search || category !== "All" || status !== "All" 
-                      ? "Try adjusting your filters" 
+                    {search || category !== "All" || status !== "All"
+                      ? "Try adjusting your filters"
                       : "Submit your first complaint to get started"}
                   </p>
                 </div>
@@ -414,10 +414,10 @@ const Dashboard = () => {
                     const StatusIcon = statusConfig.icon;
 
                     return (
-                      <div 
-                        key={complaint._id} 
+                      <div
+                        key={complaint._id}
                         className="d-flex justify-content-between align-items-center py-3"
-                        style={{ 
+                        style={{
                           borderBottom: index < paginatedComplaints.length - 1 ? "1px solid #f0f0f0" : "none",
                           cursor: "pointer",
                           transition: "background 0.2s"
@@ -426,11 +426,11 @@ const Dashboard = () => {
                         onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                       >
                         <div className="d-flex align-items-center gap-3 flex-grow-1">
-                          <div 
+                          <div
                             className="rounded-circle d-flex align-items-center justify-content-center"
-                            style={{ 
-                              width: "45px", 
-                              height: "45px", 
+                            style={{
+                              width: "45px",
+                              height: "45px",
                               backgroundColor: "#FFF8F0",
                               flexShrink: 0
                             }}
@@ -449,9 +449,9 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <div className="d-flex align-items-center gap-3">
-                          <span 
+                          <span
                             className="badge px-3 py-2"
-                            style={{ 
+                            style={{
                               backgroundColor: statusConfig.style.backgroundColor,
                               color: statusConfig.style.color,
                               border: statusConfig.style.border,
@@ -495,10 +495,10 @@ const Dashboard = () => {
           </div>
         </section>
       </div>
-      
-      <NotificationPanel 
-        isOpen={showNotifications} 
-        onClose={() => setShowNotifications(false)} 
+
+      <NotificationPanel
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
       />
     </div>
   );
