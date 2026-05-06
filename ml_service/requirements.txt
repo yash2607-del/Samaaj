@@ -1,11 +1,8 @@
-# ML training + inference dependencies
-# Note: install a TensorFlow build compatible with your Python version.
-
-tensorflow
-numpy
+tensorflow-cpu
+numpy<2.0.0
 pillow
-split-folders
-
 fastapi
 uvicorn
 python-multipart
+huggingface_hub
+keras
