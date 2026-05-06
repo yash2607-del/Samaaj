@@ -631,42 +631,51 @@ const createComplaint = async (req, res) => {
     });
     if (recentCount >= 3) reportTag = 'spam';
 
-    // 3. Duplicate Detection Logic (Last 24 Hours)
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const possibleDuplicate = await Complaint.findOne({
-      $or: [
-        { imageHash: imageHash },
-        { 
-          userId: userId || req.user?.id, 
-          category: category,
-          district: district,
-          createdAt: { $gte: dayAgo }
-        },
-        {
-          district: district,
-          title: new RegExp(escapeRegExp(title.substring(0, 10)), 'i'),
-          createdAt: { $gte: dayAgo }
+    // 3. Duplicate Detection Logic (Last 48 Hours)
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const recentComplaints = await Complaint.find({
+      createdAt: { $gte: fortyEightHoursAgo }
+    }).select('imageHash _id');
+
+    let isDuplicate = false;
+    let duplicateOf = null;
+
+    if (imageHash) {
+      const hammingDistance = (h1, h2) => {
+        if (!h1 || !h2 || h1.length !== h2.length) return 99;
+        let dist = 0;
+        let s1 = BigInt("0x" + h1).toString(2).padStart(64, '0');
+        let s2 = BigInt("0x" + h2).toString(2).padStart(64, '0');
+        for (let i = 0; i < 64; i++) {
+          if (s1[i] !== s2[i]) dist++;
         }
-      ],
-      createdAt: { $gte: dayAgo }
-    }).select('_id status');
+        return dist;
+      };
 
-    const isDuplicate = !!possibleDuplicate;
-    const duplicateOf = possibleDuplicate ? possibleDuplicate._id : null;
-    if (isDuplicate && reportTag !== 'spam') reportTag = 'duplicate';
+      for (const comp of recentComplaints) {
+        if (comp.imageHash && hammingDistance(imageHash, comp.imageHash) <= 6) { // ~90% similarity
+          isDuplicate = true;
+          duplicateOf = comp._id;
+          break;
+        }
+      }
+    }
 
-    // Trust Scoring Engine (Using the new Fusion-based trust score)
-    const trustScore = Number.isFinite(validationResult.trustScore) 
-      ? validationResult.trustScore 
-      : (validationResult.trustContribution || 0.5);
-    
+    // Trust Scoring Engine (Aligned with ML service + Duplicate penalty)
+    let trustScore = Number(validationResult.trustScore) || 0.5;
+    if (isDuplicate) {
+      trustScore = Math.max(0, trustScore - 0.3);
+    }
+    trustScore = Math.max(0, Math.min(1, trustScore));
+
     const mlDecision = String(validationResult?.decision || '').trim().toLowerCase();
-    const mlReviewStatus = toMlReviewStatus(mlDecision, reportTag, trustScore);
+    const mlReviewStatus = toMlReviewStatus(mlDecision, isDuplicate ? 'duplicate' : reportTag, trustScore);
     
     let initialStatus = "Pending";
-    if (reportTag === 'duplicate') initialStatus = "Duplicate";
-    // We no longer automatically set status to 'Rejected' based on AI. 
-    // Everything else remains 'Pending' for manual checking.
+    if (isDuplicate) {
+      reportTag = 'duplicate';
+      initialStatus = "Duplicate";
+    }
 
     const complaint = new Complaint({
       title,
@@ -698,10 +707,10 @@ const createComplaint = async (req, res) => {
       aiExplanation: validationResult.aiExplanation,
 
       aiDecision: mlDecision,
-      aiConfidence: validationResult.confidence,
+      aiConfidence: Number(validationResult.confidence) || 0,
       modelAgreement: validationResult.modelAgreement || false,
       mlPrediction: validationResult.prediction,
-      mlConfidence: validationResult.confidence,
+      mlConfidence: Number(validationResult.confidence) || 0,
       mlDecision,
       mlReviewStatus,
       status: initialStatus,
@@ -710,16 +719,22 @@ const createComplaint = async (req, res) => {
 
     await complaint.save();
 
-    // 5. Behavioral Spam Layer (recruiter-ready)
+    // 5. Behavioral Spam Layer & Smart Blocking
     if (effectiveUserId) {
-        if (reportTag === 'quarantined') {
-            const user = await User.findByIdAndUpdate(effectiveUserId, { $inc: { quarantinedReportsCount: 1 } }, { new: true });
-            if (user.quarantinedReportsCount >= 10) {
-                const blockDuration = 24 * 60 * 60 * 1000; // 24h block for 10th failure
-                await User.findByIdAndUpdate(effectiveUserId, { blockedUntil: new Date(Date.now() + blockDuration) });
-                console.warn(`User ${effectiveUserId} auto-blocked due to 10 quarantined reports.`);
-            }
+      // Track user as flagged if they submit many quarantined/irrelevant reports
+      if (reportTag === 'quarantined' || reportTag === 'irrelevant') {
+        const user = await User.findById(effectiveUserId);
+        const totalInvalid = (user.quarantinedReportsCount || 0) + 1;
+        
+        const updateFields = { $inc: { quarantinedReportsCount: 1 } };
+        if (totalInvalid >= 10) {
+          updateFields.isFlagged = true;
+          // Temporary 24-hour restriction
+          updateFields.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          console.warn(`User ${effectiveUserId} auto-blocked for 24h due to 10+ quarantined reports.`);
         }
+        await User.findByIdAndUpdate(effectiveUserId, updateFields);
+      }
     }
 
     await notifyOnComplaintCreate({ complaint });
@@ -729,22 +744,22 @@ const createComplaint = async (req, res) => {
         aiExplanation: validationResult.aiExplanation
     };
 
+    // UX BEHAVIOR: Soft messages
     if (isDuplicate) {
       return res.status(201).json({
         ...responseData,
-        message: "Similar issue already reported. Your report has been added for review."
+        message: "Report submitted successfully. Similar issue already reported; marked for review."
       });
     }
 
-    // Assistive Flow: Always allow creation
-    if (reportTag === 'quarantined' || mlDecision === 'quarantined' || mlDecision === 'unclear') {
+    if (reportTag === 'quarantined' || reportTag === 'irrelevant') {
        return res.status(201).json({
           ...responseData,
-          message: "Report submitted successfully. We couldn’t fully verify the image, but it has been added for manual review."
+          message: "Report submitted successfully. Image may not clearly represent an issue. Our team will review it."
        });
     }
 
-    if (reportTag === 'spam' || reportTag === 'irrelevant' || mlDecision === 'needs_review' || trustScore < 0.4) {
+    if (mlDecision === 'needs_review' || trustScore < 0.4) {
       return res.status(201).json({
         ...responseData,
         message: "Report submitted successfully. Marked for manual review."

@@ -9,6 +9,7 @@ const userSchema = new Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ['Citizen', 'Moderator'], required: true },
   blockedUntil: { type: Date, default: null },
+  isFlagged: { type: Boolean, default: false },
   quarantinedReportsCount: { type: Number, default: 0 },
   invalidReportCount: { type: Number, default: 0 }
 }, {

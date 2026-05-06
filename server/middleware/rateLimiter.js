@@ -1,25 +1,25 @@
 import rateLimit from 'express-rate-limit';
 
 export const submissionRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit each IP to 20 submissions per windowMs
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 20, // Limit each IP to 20 submissions per day
   message: {
-    message: 'Too many reports. Please try again later.'
+    message: 'Daily report limit reached. Please try again tomorrow.'
   },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.user?.id || req.ip,
-  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false }
+  validate: { keyGeneratorIpFallback: false }
 });
 
 export const minuteRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5, // Limit each IP to 5 submissions per minute
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5, // Limit each IP to 5 submissions per 10 minutes
   message: {
-    message: 'Too many reports. Please try again later.'
+    message: 'Too many requests. Please try later.'
   },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.user?.id || req.ip,
-  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false }
+  validate: { keyGeneratorIpFallback: false }
 });

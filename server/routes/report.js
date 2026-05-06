@@ -131,7 +131,7 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
       });
     }
 
-    const { prediction, confidence, decision, modelOutputs, trustScore } = validationResult;
+    const { prediction, confidence, decision, modelOutputs, trustScore, reportTag, isDuplicate } = validationResult;
     const mlDecision = String(decision || '').trim().toLowerCase();
     const mlReviewStatus = toMlReviewStatus(mlDecision);
 
@@ -155,10 +155,13 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
       department: departmentId,
       userId: req.user?.id || null,
       photo: `/uploads/${req.file.filename}`,
+      imageHash: validationResult.imageHash,
       mlPrediction: prediction,
-      mlConfidence: confidence,
+      mlConfidence: Number(confidence) || 0,
       mlDecision,
       mlReviewStatus,
+      reportTag: reportTag || 'clean',
+      trustScore: Number(trustScore) || 0.5,
       mlModelOutputs: modelOutputs || null
     });
 
@@ -168,8 +171,18 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
       .populate("department", "name category")
       .lean();
 
+    // Soft UX Behavior
+    if (reportTag === 'quarantined' || reportTag === 'irrelevant') {
+      return res.status(201).json({
+        message: "Report submitted successfully. Image may not clearly represent an issue. Our team will review it.",
+        prediction,
+        decision: mlDecision,
+        complaint: populatedComplaint
+      });
+    }
+
     return res.status(201).json({
-      message: "Complaint created with ML prediction",
+      message: "Report submitted successfully.",
       prediction,
       decision: mlDecision,
       complaint: populatedComplaint

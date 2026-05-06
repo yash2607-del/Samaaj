@@ -58,8 +58,8 @@ export const predictIssueFromImagePath = async ({ imagePath, originalName, title
 export const assertComplaintImageContext = async ({ imagePath, originalName, category, title, description }) => {
   const ml = await predictIssueFromImagePath({ imagePath, originalName, title, description, category });
   
-  if (!ml) {
-    throw new Error("ML service unavailable or failed to respond.");
+  if (!ml || ml.error) {
+    throw new Error(ml?.error || "ML service failed to provide a valid prediction.");
   }
 
   const contextLabel = extractContextLabel({ title, description });
@@ -67,12 +67,15 @@ export const assertComplaintImageContext = async ({ imagePath, originalName, cat
 
   let { 
     final_label, 
-    confidence, 
+    confidence = 0, 
     decision, 
     reportTag, 
-    trustScore, 
+    trustScore = 0.5, 
     source 
   } = ml;
+
+  // Ensure confidence is a number
+  confidence = Number(confidence) || 0;
 
   // 1. STRONG CONTEXT OVERRIDE (NODE.JS SAFETY LAYER)
   if (categoryMatch) {
@@ -105,7 +108,9 @@ export const assertComplaintImageContext = async ({ imagePath, originalName, cat
     hf: ml.hf,
     cnn: ml.cnn,
     pretrained: ml.pretrained,
-    topPredictions: ml.top_predictions || []
+    topPredictions: ml.top_predictions || [],
+    quality: ml.quality,
+    imageHash: ml.imageHash
   };
 };
 

@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 import tensorflow as tf
-from PIL import Image
+from PIL import Image, ImageStat
 
 # Lazy load transformers to keep startup fast for CNN/Pretrained
 pipeline = None
@@ -88,7 +88,9 @@ def init_hf():
 
 def apply_temperature_scaling(probs, temp):
     probs = np.power(probs, 1/temp)
-    return probs / np.sum(probs)
+    s = np.sum(probs)
+    if s == 0: return probs
+    return probs / s
 
 def get_tta_variants(img_array):
     variants = [img_array]
@@ -113,6 +115,70 @@ def predict_single_model(model, img_array):
         "label": class_names[idx] if idx < len(class_names) else "unknown",
         "confidence": float(avg_pred[idx]),
         "probs": avg_pred
+    }
+
+def get_average_hash(image_pil):
+    """Generate a 64-bit perceptual hash (average hash) for duplicate detection."""
+    try:
+        # Resize to 8x8 and convert to grayscale
+        img = image_pil.convert('L').resize((8, 8), Image.Resampling.LANCZOS)
+        pixels = np.array(img)
+        avg = pixels.mean()
+        # Binary string
+        hash_str = "".join(['1' if p > avg else '0' for p in pixels.flatten()])
+        # Convert to hex
+        return hex(int(hash_str, 2))[2:].zfill(16)
+    except Exception as e:
+        print(f"Error generating hash: {e}")
+        return ""
+
+def check_image_quality(image_pil):
+    """
+    Detect:
+    - blur (variance of Laplacian)
+    - extremely dark/bright images
+    - very low resolution
+    """
+    # 1. Resolution Check
+    width, height = image_pil.size
+    is_low_res = (width < 300 or height < 300)
+    
+    # 2. Brightness Check
+    stat = ImageStat.Stat(image_pil.convert('L'))
+    brightness = stat.mean[0]
+    is_too_dark = brightness < 30
+    is_too_bright = brightness > 225
+    
+    # 3. Blur Check (Manual Laplacian Variance)
+    img_gray = np.array(image_pil.convert('L'), dtype=np.float32)
+    if img_gray.shape[0] > 2 and img_gray.shape[1] > 2:
+        laplacian = img_gray[1:-1, 1:-1] * -4 + \
+                    img_gray[0:-2, 1:-1] + \
+                    img_gray[2:, 1:-1] + \
+                    img_gray[1:-1, 0:-2] + \
+                    img_gray[1:-1, 2:]
+        lap_var = laplacian.var()
+    else:
+        lap_var = 500 # Default safe value for tiny images
+    
+    is_blurry = lap_var < 100 # Threshold for "blurry"
+    
+    is_low_quality = is_low_res or is_too_dark or is_too_bright or is_blurry
+    
+    reasons = []
+    if is_low_res: reasons.append("low_resolution")
+    if is_too_dark: reasons.append("too_dark")
+    if is_too_bright: reasons.append("too_bright")
+    if is_blurry: reasons.append("blurry")
+    
+    return {
+        "is_low_quality": is_low_quality,
+        "reasons": reasons,
+        "metrics": {
+            "brightness": float(brightness),
+            "laplacian_var": float(lap_var),
+            "resolution": f"{width}x{height}"
+        }
     }
 
 def extract_context_label(title, description):
@@ -159,6 +225,10 @@ def run_hf_fallback(image_pil):
         return None
 
 def predict_ensemble(image_pil, title="", description="", user_category=""):
+    # 0. Image Quality Check (PRE-VALIDATION)
+    quality = check_image_quality(image_pil)
+    image_hash = get_average_hash(image_pil)
+
     img = image_pil.resize(IMAGE_SIZE)
     img_array = np.array(img, dtype=np.float32) / 255.0
     
@@ -178,6 +248,7 @@ def predict_ensemble(image_pil, title="", description="", user_category=""):
         results[name] = predict_single_model(model, img_array)
         
     if not results:
+        print("⚠️ Warning: predict_ensemble called but 'models' is empty!")
         return None
 
     cnn = results.get("cnn")
@@ -219,15 +290,13 @@ def predict_ensemble(image_pil, title="", description="", user_category=""):
         confidence = min(1.0, confidence + 0.15)
         
     # 4. STRONG CONTEXT OVERRIDE (CRITICAL FIX)
-    # If user intent is clear and category matches context, prioritize it
     category_match = context_label != "unknown" and cat_to_context.get(user_category) == context_label
     
     if category_match:
         final_label = context_label
-        confidence = max(confidence, 0.7) # Force confidence >= 0.7
+        confidence = max(confidence, 0.7) 
         source = "strong_context_override"
     elif confidence < 0.4 and context_label != "unknown":
-        # Standard override for weak ML
         final_label = context_label
         confidence = 0.45
         source = "context_override"
@@ -238,47 +307,65 @@ def predict_ensemble(image_pil, title="", description="", user_category=""):
         hf_result = run_hf_fallback(image_pil)
         if hf_result:
             if hf_result["mapped_label"] != "unknown" and hf_result["confidence"] > 0.5:
-                # Assist decision if HF maps to civic category
                 final_label = hf_result["mapped_label"]
                 confidence = max(confidence, hf_result["confidence"] - 0.1)
                 source = "hf_assisted"
 
     # 6. Intelligent Irrelevance Detection
-    # Mark as quarantined ONLY if:
-    # - very low confidence (< 0.25)
-    # - no context from user
-    # - models disagree
-    # - HF model also fails to map to any civic category
+    # Mark as irrelevant if HF labels belong to generic categories
+    NON_CIVIC_LABELS = ["person", "selfie", "food", "animal", "sky", "indoor", "furniture", "room", "face"]
     is_irrelevant = False
-    if confidence < 0.25 and context_label == "unknown" and not agreement:
-        if hf_result is None:
-            hf_result = run_hf_fallback(image_pil)
-        
-        if hf_result and not hf_result["is_civic"]:
-            is_irrelevant = True
+    
+    if hf_result is None:
+        hf_result = run_hf_fallback(image_pil)
+    
+    if hf_result:
+        hf_label = hf_result["label"].lower()
+        if any(bad in hf_label for bad in NON_CIVIC_LABELS) and not hf_result["is_civic"]:
+            if context_label == "unknown":
+                is_irrelevant = True
 
     # 7. Decision Logic (FINAL OUTPUT)
     decision = "needs_review"
     report_tag = "clean"
     
-    # VERIFIED: confidence > 0.55 OR (context exists AND confidence > 0.3)
-    if source == "strong_context_override":
-        decision = "verified"
-    elif confidence > 0.55 or (context_label != "unknown" and confidence > 0.3):
-        decision = "verified"
-    # QUARANTINED: behavior-based irrelevance
-    elif is_irrelevant or confidence < 0.15:
-        decision = "quarantined"
-        report_tag = "quarantined"
-    else:
+    if quality["is_low_quality"]:
+        report_tag = "low_quality"
         decision = "needs_review"
 
-    # 8. Trust Score Update
+    # Final Spam Rule:
+    # If low confidence (<0.2) AND no context AND irrelevant image
+    if confidence < 0.2 and context_label == "unknown" and is_irrelevant:
+        decision = "quarantined"
+        report_tag = "quarantined"
+    elif is_irrelevant:
+        report_tag = "irrelevant"
+        decision = "needs_review"
+    
+    # Standard Decision
+    if decision not in ["quarantined"]:
+        if source == "strong_context_override":
+            decision = "verified"
+        elif confidence > 0.55 or (context_label != "unknown" and confidence > 0.3):
+            decision = "verified"
+        elif confidence < 0.15:
+            decision = "quarantined"
+            report_tag = "quarantined"
+
+    # 8. Trust Score Update (IMPROVED SCORING LOGIC)
+    # Base = 0.5
+    # +0.2 high ML confidence
+    # +0.2 context matches prediction
+    # -0.3 duplicate (handled in Node, set to 0 here)
+    # -0.4 quarantined
+    # -0.2 low quality image
+    
     trust_score = 0.5
-    if confidence > 0.6: trust_score += 0.2
+    if confidence > 0.7: trust_score += 0.2
     if context_label != "unknown" and (context_label in final_label or category_match): trust_score += 0.2
-    if agreement: trust_score += 0.1
-    if decision == "quarantined": trust_score -= 0.4
+    
+    if report_tag == "quarantined": trust_score -= 0.4
+    if quality["is_low_quality"]: trust_score -= 0.2
     
     trust_score = max(0.0, min(1.0, trust_score))
 
@@ -297,17 +384,27 @@ def predict_ensemble(image_pil, title="", description="", user_category=""):
         ]
 
     return {
-        "final_label": final_label,
-        "confidence": confidence,
-        "agreement": agreement,
-        "source": source,
-        "cnn": {"label": cnn["label"], "confidence": cnn["confidence"]} if cnn else None,
-        "pretrained": {"label": pretrained["label"], "confidence": pretrained["confidence"]} if pretrained else None,
+        "final_label": str(final_label),
+        "confidence": float(confidence),
+        "agreement": bool(agreement),
+        "source": str(source),
+        "cnn": {"label": str(cnn["label"]), "confidence": float(cnn["confidence"])} if cnn else None,
+        "pretrained": {"label": str(pretrained["label"]), "confidence": float(pretrained["confidence"])} if pretrained else None,
         "hf": hf_result,
         "top_predictions": top_predictions,
-        "decision": decision,
-        "reportTag": report_tag,
-        "trustScore": trust_score,
-        "context_label": context_label
+        "decision": str(decision),
+        "reportTag": str(report_tag),
+        "trustScore": float(trust_score),
+        "context_label": str(context_label),
+        "quality": {
+            "is_low_quality": bool(quality["is_low_quality"]),
+            "reasons": quality["reasons"],
+            "metrics": {
+                "brightness": float(quality["metrics"]["brightness"]),
+                "laplacian_var": float(quality["metrics"]["laplacian_var"]),
+                "resolution": quality["metrics"]["resolution"]
+            }
+        },
+        "imageHash": str(image_hash)
     }
 
