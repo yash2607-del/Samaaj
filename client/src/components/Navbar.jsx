@@ -1,132 +1,121 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import './Navbar.css'; // Move relevant navbar styles here
-import { FiUser, FiLogOut } from 'react-icons/fi';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { FiMenu, FiX, FiLogOut, FiUser } from 'react-icons/fi';
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('home');
-  const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } });
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; }
+  });
 
   useEffect(() => {
-    const handleSectionScroll = () => {
-      const sections = ['home', 'features', 'about'];
-      let current = 'home';
-      for (let id of sections) {
-        const el = document.getElementById(id);
-        if (el && window.scrollY + 150 >= el.offsetTop) {
-          current = id;
-        }
-      }
-      setActiveSection(current);
-    };
-
-    const handleNavbarScroll = () => {
-      const nav = document.querySelector('.navbar-custom');
-      if (window.scrollY > 50) {
-        nav.classList.add('navbar-scrolled');
-      } else {
-        nav.classList.remove('navbar-scrolled');
-      }
-    };
-
-    window.addEventListener('scroll', handleSectionScroll);
-    window.addEventListener('scroll', handleNavbarScroll);
-    return () => {
-      window.removeEventListener('scroll', handleSectionScroll);
-      window.removeEventListener('scroll', handleNavbarScroll);
-    };
-  }, []);
-
-  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
     const onAuthChanged = () => setUser(() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } });
     window.addEventListener('authChanged', onAuthChanged);
-    window.addEventListener('storage', onAuthChanged);
     return () => {
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('authChanged', onAuthChanged);
-      window.removeEventListener('storage', onAuthChanged);
     };
   }, []);
 
-  return (
-    <nav className="navbar navbar-expand-lg navbar-custom bg-black/50 backdrop-blur-md p-4 rounded fixed-top">
-      <div className="container">
-        <a className="navbar-brand text-golden fw-bold display-4" href="#home">Samaaj</a>
-        <button
-          className="navbar-toggler"
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-controls="navbarNav"
-          aria-expanded={isOpen}
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className={`collapse navbar-collapse ${isOpen ? 'show' : ''}`} id="navbarNav">
-          <ul className="navbar-nav ms-auto d-flex align-items-center">
-            {['home', 'features', 'about'].map((section) => (
-              <li className="nav-item" key={section}>
-                <a
-                  href={`#${section}`}
-                  className={`nav-link nav-link-custom ${activeSection === section ? 'active' : ''}`}
-                  onClick={() => setIsOpen(false)}
-                >
-                  {section.charAt(0).toUpperCase() + section.slice(1)}
-                </a>
-              </li>
-            ))}
-            {/* show login/signup when not authenticated, otherwise show profile + logout */}
-            {user ? (
-              <>
-                <li className="nav-item d-flex align-items-center me-2">
-                  <Link to={/moderator/i.test((user.role||'').toLowerCase()) ? '/moderator-profile' : '/user-profile'} className="btn btn-light rounded-circle d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                    <FiUser />
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <LogoutButton />
-                </li>
-              </>
-            ) : (
-              <>
-                <li className="nav-item">
-                  <Link to="/signup" className="nav-link nav-link-custom" onClick={() => setIsOpen(false)}>
-                    Signup
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link to="/login" className="nav-link nav-link-custom" onClick={() => setIsOpen(false)}>
-                    Login
-                  </Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </div>
-      </div>
-    </nav>
-  );
-
-const LogoutButton = () => {
-  const navigate = useNavigate();
   const handleLogout = async () => {
     try {
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
     } catch (e) {}
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userId');
-    // notify other components
+    localStorage.clear();
     window.dispatchEvent(new Event('authChanged'));
+    setUser(null);
     navigate('/');
   };
+
+  const navLinks = [
+    { name: 'Services', to: '/#features' },
+    { name: 'About', to: '/about' },
+    { name: 'Impact', to: '/impact' },
+  ];
+
+  const role = (user?.role || '').toLowerCase();
+
   return (
-    <button className="btn btn-outline-light ms-2" onClick={handleLogout} title="Logout">
-      <FiLogOut />
-    </button>
+    <nav className="fixed-top transition-all duration-700" 
+         style={{ 
+           top: scrolled ? '10px' : '20px',
+           width: '100%',
+           display: 'flex',
+           justifyContent: 'center',
+           zIndex: 1100,
+           pointerEvents: 'none'
+         }}>
+      <div style={{ 
+        width: '90%', 
+        maxWidth: '1200px', 
+        backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.4)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(0, 0, 0, 0.05)',
+        borderRadius: scrolled ? '30px' : '50px',
+        padding: scrolled ? '0.6rem 2.5rem' : '0.8rem 3rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        boxShadow: scrolled ? '0 15px 35px rgba(0,0,0,0.05)' : 'none',
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+        pointerEvents: 'auto'
+      }}>
+        <Link className="d-flex align-items-center" to="/" style={{ color: '#000', textDecoration: 'none' }}>
+          <div className="fw-black" style={{ fontSize: '1.4rem', letterSpacing: '1px' }}>SAMAAJ<span style={{ color: '#FF7A45' }}>.</span></div>
+        </Link>
+
+        {/* Desktop Links */}
+        <div className="d-none d-lg-flex align-items-center gap-5">
+          {navLinks.map((link) => (
+            <Link key={link.name} to={link.to} 
+               style={{ 
+                 color: '#000', 
+                 fontWeight: '700', 
+                 fontSize: '0.75rem', 
+                 textTransform: 'uppercase', 
+                 letterSpacing: '1.5px', 
+                 textDecoration: 'none',
+                 opacity: location.pathname === link.to ? 1 : 0.6,
+                 transition: 'opacity 0.3s' 
+               }}>
+              {link.name}
+            </Link>
+          ))}
+        </div>
+
+        <div className="d-flex gap-4 align-items-center">
+          {user ? (
+            <>
+              <Link to={role === 'moderator' ? '/moderator-dashboard' : '/dashboard'} 
+                    style={{ color: '#000', textDecoration: 'none', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+                DASHBOARD
+              </Link>
+              <button onClick={handleLogout} className="btn py-2 px-4" 
+                      style={{ backgroundColor: '#000', color: '#fff', fontWeight: '800', fontSize: '0.7rem', textTransform: 'uppercase', borderRadius: '50px', transition: 'transform 0.2s' }}
+                      onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+                      onMouseLeave={e => e.target.style.transform = 'scale(1)'}>
+                LOGOUT
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" style={{ color: '#000', textDecoration: 'none', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1.5px' }}>LOGIN</Link>
+              <Link to="/signup" className="btn py-2 px-4" 
+                    style={{ backgroundColor: '#000', color: '#fff', fontWeight: '800', fontSize: '0.7rem', textTransform: 'uppercase', borderRadius: '50px' }}>
+                START NOW
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
   );
-};
 };
 
 export default Navbar;

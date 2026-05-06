@@ -6,7 +6,7 @@ const complaintSchema = new Schema(
     title: { type: String, required: true },
     category: {
       type: String,
-      enum: ["Sanitization","Cleanliness","Electricity","Road","Water","Public Safety","Other"],
+      enum: ["Sanitization","Cleanliness","Electricity","Road","Water","Public Safety","Public Works","Other"],
       required: true
     },
     description: { type: String, default: "" },
@@ -22,19 +22,49 @@ const complaintSchema = new Schema(
     mlConfidence: { type: Number, min: 0, max: 1, default: null },
     mlDecision: {
       type: String,
-      enum: ["", "verified", "needs_review", "uncertain", "unclear"],
+      enum: ["", "verified", "needs_review", "uncertain", "unclear", "quarantined"],
       default: ""
     },
     mlReviewStatus: {
       type: String,
-      enum: ["", "Verified", "Pending Review", "Manual Check", "Rejected"],
+      enum: ["", "Verified", "Pending Review", "Manual Check", "Rejected", "Hidden/Rejected", "Duplicate", "AI Verified", "AI Needs Review", "Quarantined", "Verified by AI", "Submitted for Review", "Flagged for Manual Check"],
       default: ""
     },
     mlModelOutputs: { type: Schema.Types.Mixed, default: null },
+    
+    // AI Observability Suite
+    cnnLabel: { type: String, default: "" },
+    cnnConfidence: { type: Number, default: 0 },
+    pretrainedLabel: { type: String, default: "" },
+    pretrainedConfidence: { type: Number, default: 0 },
+    contextLabel: { type: String, default: "" },
+    aiExplanation: { type: String, default: "" },
+    
+    // Moderator Feedback Loop
+    correctedLabel: { type: String, default: "" },
+    isModelCorrect: { type: Boolean, default: null }, // null until reviewed
+
+    aiDecision: { type: String, default: "" },
+    aiConfidence: { type: Number, default: 0 },
+    modelAgreement: { type: Boolean, default: false },
+    isDuplicate: { type: Boolean, default: false },
+    duplicateOf: { type: Schema.Types.ObjectId, ref: "Complaint", default: null },
+    trustScore: { type: Number, default: 0.5 },
+    imageHash: { type: String, default: "" },
     status: {
       type: String,
-      enum: ["Pending","In Progress","Resolved","Rejected"],
+      enum: ["Pending","In Progress","Resolved","Rejected", "Duplicate", "Quarantined"],
       default: "Pending"
+    },
+    reportTag: {
+      type: String,
+      enum: ["", "spam", "duplicate", "irrelevant", "clean", "quarantined"],
+      default: ""
+    },
+    imageSource: {
+      type: String,
+      enum: ["", "camera", "gallery"],
+      default: ""
     },
     userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     department: { type: Schema.Types.ObjectId, ref: "Department", required: true },

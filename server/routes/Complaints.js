@@ -29,6 +29,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+import { minuteRateLimiter, submissionRateLimiter } from '../middleware/rateLimiter.js';
+
 router.get('/departments', complaintsController.getDepartments);
 router.get('/departments/:id', complaintsController.getDepartmentById);
 // Listing complaints handled by controller which enforces role-specific filters
@@ -42,12 +44,15 @@ router.patch('/update-status/:complaintId', auth, requireRole('Moderator'), uplo
 router.post('/update-status/:complaintId', auth, requireRole('Moderator'), upload.single('actionPhoto'), complaintsController.updateStatus);
 router.post('/assign/:complaintId', auth, requireRole('Moderator'), complaintsController.assignComplaint);
 router.post('/validate-image', auth, upload.single('photo'), complaintsController.validateComplaintImage);
-router.post('/', auth, upload.single('photo'), complaintsController.createComplaint);
+router.post('/', auth, minuteRateLimiter, submissionRateLimiter, upload.single('photo'), complaintsController.createComplaint);
 router.post('/:complaintId/community-validate', auth, complaintsController.communityValidate);
 router.delete('/:complaintId/community-validate', auth, complaintsController.removeCommunityValidate);
 router.post('/:complaintId/like', auth, complaintsController.likeComplaint);
 router.post('/:complaintId/dislike', auth, complaintsController.dislikeComplaint);
+router.post('/:complaintId/ai-feedback', auth, requireRole('Moderator'), complaintsController.submitAiFeedback);
+router.get('/stats/heatmap', auth, complaintsController.getHeatmapStats);
 // Get single complaint and related complaints by category
 router.get('/:complaintId', auth, complaintsController.getComplaint);
+router.delete('/:complaintId', auth, complaintsController.deleteComplaint);
 
 export default router;

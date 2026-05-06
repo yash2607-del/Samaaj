@@ -5,22 +5,37 @@ import { fileURLToPath } from 'url';
 import Complaint from '../models/complaint.js';
 import Moderator from '../models/Moderator.js';
 import Department from '../models/Department.js';
-import { Citizen, Moderator as ModeratorUser } from '../models/User.js';
+import { User, Citizen, Moderator as ModeratorUser } from '../models/User.js';
 import resolveModeratorDept from '../utils/resolveModeratorDept.js';
 import Notification from '../models/Notification.js';
 import notifyOnComplaintCreate from '../utils/notifyOnComplaintCreate.js';
-import { assertComplaintImageContext } from '../utils/mlImageValidation.js';
+import { assertComplaintImageContext, isMeaninglessText } from '../services/ml/mlImageValidation.js';
+import crypto from 'crypto';
+
+const generateImageHash = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('md5');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (data) => hash.update(data));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', (err) => reject(err));
+  });
+};
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const ACCEPTED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
-const toMlReviewStatus = (decision) => {
+
+const toMlReviewStatus = (decision, reportTag, trustScore = 1.0) => {
   const d = String(decision || '').trim().toLowerCase();
-  if (d === 'verified') return 'Verified';
-  if (d === 'needs_review') return 'Pending Review';
-  if (d === 'uncertain') return 'Manual Check';
-  if (d === 'unclear') return 'Rejected';
-  return '';
+  const t = String(reportTag || '').trim().toLowerCase();
+  
+  if (t === 'duplicate') return 'Duplicate';
+  
+  if (d === 'verified') return 'Verified by AI';
+  if (d === 'quarantined') return 'Flagged for Manual Check';
+  
+  return 'Submitted for Review';
 };
 
 const safelyDeleteUploadedFile = async (filePath) => {
@@ -153,7 +168,7 @@ const listComplaints = async (req, res) => {
 
     let complaints = await Complaint.find(filter)
       .populate('department', 'name')
-      .sort({ createdAt: -1 })
+      .sort({ trustScore: 1, createdAt: -1 })
       .lean();
 
     complaints = sanitizePhotoFields(complaints);
@@ -250,13 +265,19 @@ const moderatorView = async (req, res) => {
         const relatedDepts = await Department.find({ category: deptDoc.category }).select('_id').lean();
         const deptIds = relatedDepts.map(d => d._id).filter(Boolean);
         if (deptIds.length) {
-          complaints = await Complaint.find({ department: { $in: deptIds } }).populate('department').sort({ createdAt: -1 });
+          complaints = await Complaint.find({ 
+            department: { $in: deptIds },
+            reportTag: { $ne: 'quarantined' }
+          }).populate('department').sort({ trustScore: 1, createdAt: -1 });
         }
       }
 
       // Fallback to single-department behavior if above did not return results
       if (!complaints || complaints.length === 0) {
-        complaints = await Complaint.find({ department: resolvedDeptId }).populate('department').sort({ createdAt: -1 });
+        complaints = await Complaint.find({ 
+          department: resolvedDeptId,
+          reportTag: { $ne: 'quarantined' }
+        }).populate('department').sort({ trustScore: 1, createdAt: -1 });
       }
 
       // Debug: log photo paths returned to moderators to diagnose missing images
@@ -501,12 +522,26 @@ const createComplaint = async (req, res) => {
 
     const body = req.body || {};
     const { title, category, description, location, addressLine, landmark, city, district, state, pincode, department: deptBody, userId } = body;
+    const effectiveUserId = userId || req.user?.id;
+
+    // Abuse Control: Check if user is temporarily blocked
+    if (effectiveUserId) {
+      const user = await User.findById(effectiveUserId);
+      if (user && user.blockedUntil && user.blockedUntil > new Date()) {
+        return res.status(403).json({ 
+          error: "Too many invalid reports. Please try again later.",
+          blockedUntil: user.blockedUntil
+        });
+      }
+    }
 
     let departmentUsed = null;
     if (deptBody && mongoose.Types.ObjectId.isValid(String(deptBody))) {
       departmentUsed = String(deptBody);
-    } else if (req.user && String(req.user.role || '').toLowerCase() === 'moderator' && req.user.department && mongoose.Types.ObjectId.isValid(String(req.user.department))) {
-      departmentUsed = String(req.user.department);
+    } else if (category) {
+      // Proactively resolve department by category to fix 400 errors for citizens
+      const matchedDept = await Department.findOne({ category: new RegExp('^' + escapeRegExp(category) + '$', 'i') }).select('_id');
+      if (matchedDept) departmentUsed = matchedDept._id;
     }
 
     if (!title || !category || !location || !departmentUsed) return res.status(400).json({ error: "All fields are required (ensure department is provided)" });
@@ -544,50 +579,94 @@ const createComplaint = async (req, res) => {
       });
     }
 
-    if (!validationResult.ok) {
-      await safelyDeleteUploadedFile(req.file.path);
-
-      if (validationResult.reason === 'unclear') {
-        return res.status(400).json({
-          error: 'Unable to verify this photo as a civic issue. Please upload a clearer, closer image of the issue.'
-        });
-      }
-
-      if (validationResult.reason === 'low_confidence') {
-        return res.status(400).json({
-          error: 'Unable to verify this photo reliably. Please upload a clearer, closer image of the issue.'
-        });
-      }
-
-      if (validationResult.reason === 'ambiguous_prediction') {
-        return res.status(400).json({
-          error: `Image appears unrelated or ambiguous for civic issues (top confidence gap too low). Please upload a focused issue photo.`
-        });
-      }
-
-      if (validationResult.reason === 'unstable_prediction') {
-        return res.status(400).json({
-          error: 'Image prediction is unstable across checks. Please upload a clearer, focused issue photo from a closer angle.'
-        });
-      }
-
-      if (validationResult.reason === 'issue_mismatch') {
-        const expected = Array.isArray(validationResult.expectedIssues) && validationResult.expectedIssues.length > 0
-          ? validationResult.expectedIssues.join(', ')
-          : category;
-        return res.status(400).json({
-          error: `Image does not match complaint context. Expected: ${expected}; detected: ${validationResult.prediction}.`
-        });
-      }
-
-      return res.status(400).json({
-        error: `Image does not match selected category \"${category}\" (detected \"${validationResult.prediction}\").`
-      });
+    // Allow even irrelevant/non-ideal results to proceed to the creation phase
+    // where they will be marked as 'Rejected' internally but given a soft UX message.
+    if (!validationResult.ok || validationResult.reportTag === 'irrelevant') {
+      console.warn(`[ML Validation] Non-ideal result: ${validationResult.reason}. Proceeding with soft flagging.`);
     }
 
     const photoPath = `/uploads/${req.file.filename}`;
+    const imageHash = await generateImageHash(req.file.path);
+    const imageSource = String(body.imageSource || 'gallery').toLowerCase();
+    
+    // 1. Spam Detection: Meaningless Text
+    let reportTag = validationResult.reportTag || 'clean';
+    if (isMeaninglessText(title) || isMeaninglessText(description)) {
+      reportTag = 'spam';
+    }
+
+    // Abuse Control: Track Invalid (Quarantined) Reports within 24h
+    if (effectiveUserId) {
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const invalidReportsCount = await Complaint.countDocuments({
+        userId: effectiveUserId,
+        reportTag: 'quarantined',
+        createdAt: { $gte: last24h }
+      });
+
+      if (reportTag === 'quarantined' || validationResult.reportTag === 'quarantined') {
+        const totalInvalid = invalidReportsCount + 1;
+        
+        if (totalInvalid >= 10) {
+          const blockDuration = 6 * 60 * 60 * 1000; // 6 hours
+          await User.findByIdAndUpdate(effectiveUserId, { 
+            blockedUntil: new Date(Date.now() + blockDuration) 
+          });
+          console.warn(`User ${effectiveUserId} blocked for 6h due to 10+ invalid reports.`);
+        } else if (totalInvalid >= 5) {
+          // Implicit stricter rate limit: mark as spam to trigger penalties
+          reportTag = 'spam'; 
+        }
+        
+        // Attachment of warning for frontend (if needed)
+        res.setHeader('X-Abuse-Warning', totalInvalid >= 3 ? 'true' : 'false');
+      }
+    }
+
+    // 2. Spam Detection: Rapid repeated submissions (last 5 mins)
+    const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const recentCount = await Complaint.countDocuments({
+      userId: userId || req.user?.id,
+      createdAt: { $gte: fiveMinsAgo }
+    });
+    if (recentCount >= 3) reportTag = 'spam';
+
+    // 3. Duplicate Detection Logic (Last 24 Hours)
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const possibleDuplicate = await Complaint.findOne({
+      $or: [
+        { imageHash: imageHash },
+        { 
+          userId: userId || req.user?.id, 
+          category: category,
+          district: district,
+          createdAt: { $gte: dayAgo }
+        },
+        {
+          district: district,
+          title: new RegExp(escapeRegExp(title.substring(0, 10)), 'i'),
+          createdAt: { $gte: dayAgo }
+        }
+      ],
+      createdAt: { $gte: dayAgo }
+    }).select('_id status');
+
+    const isDuplicate = !!possibleDuplicate;
+    const duplicateOf = possibleDuplicate ? possibleDuplicate._id : null;
+    if (isDuplicate && reportTag !== 'spam') reportTag = 'duplicate';
+
+    // Trust Scoring Engine (Using the new Fusion-based trust score)
+    const trustScore = Number.isFinite(validationResult.trustScore) 
+      ? validationResult.trustScore 
+      : (validationResult.trustContribution || 0.5);
+    
     const mlDecision = String(validationResult?.decision || '').trim().toLowerCase();
-    const mlReviewStatus = toMlReviewStatus(mlDecision);
+    const mlReviewStatus = toMlReviewStatus(mlDecision, reportTag, trustScore);
+    
+    let initialStatus = "Pending";
+    if (reportTag === 'duplicate') initialStatus = "Duplicate";
+    // We no longer automatically set status to 'Rejected' based on AI. 
+    // Everything else remains 'Pending' for manual checking.
 
     const complaint = new Complaint({
       title,
@@ -603,18 +682,79 @@ const createComplaint = async (req, res) => {
       department: departmentUsed,
       userId: userId || (req.user?.id ? req.user.id : null),
       photo: photoPath,
+      imageHash,
+      imageSource,
+      reportTag,
+      isDuplicate,
+      duplicateOf,
+      trustScore,
+      
+      // Observability
+      cnnLabel: validationResult.cnnLabel,
+      cnnConfidence: validationResult.cnnConfidence,
+      pretrainedLabel: validationResult.pretrainedLabel,
+      pretrainedConfidence: validationResult.pretrainedConfidence,
+      contextLabel: validationResult.contextLabel,
+      aiExplanation: validationResult.aiExplanation,
+
+      aiDecision: mlDecision,
+      aiConfidence: validationResult.confidence,
+      modelAgreement: validationResult.modelAgreement || false,
       mlPrediction: validationResult.prediction,
       mlConfidence: validationResult.confidence,
       mlDecision,
       mlReviewStatus,
+      status: initialStatus,
       mlModelOutputs: validationResult?.modelOutputs || null
     });
 
     await complaint.save();
 
-    // Best-effort notifications: owner + moderators + district citizens
+    // 5. Behavioral Spam Layer (recruiter-ready)
+    if (effectiveUserId) {
+        if (reportTag === 'quarantined') {
+            const user = await User.findByIdAndUpdate(effectiveUserId, { $inc: { quarantinedReportsCount: 1 } }, { new: true });
+            if (user.quarantinedReportsCount >= 10) {
+                const blockDuration = 24 * 60 * 60 * 1000; // 24h block for 10th failure
+                await User.findByIdAndUpdate(effectiveUserId, { blockedUntil: new Date(Date.now() + blockDuration) });
+                console.warn(`User ${effectiveUserId} auto-blocked due to 10 quarantined reports.`);
+            }
+        }
+    }
+
     await notifyOnComplaintCreate({ complaint });
-    res.status(201).json(complaint);
+    
+    const responseData = {
+        ...complaint.toObject(),
+        aiExplanation: validationResult.aiExplanation
+    };
+
+    if (isDuplicate) {
+      return res.status(201).json({
+        ...responseData,
+        message: "Similar issue already reported. Your report has been added for review."
+      });
+    }
+
+    // Assistive Flow: Always allow creation
+    if (reportTag === 'quarantined' || mlDecision === 'quarantined' || mlDecision === 'unclear') {
+       return res.status(201).json({
+          ...responseData,
+          message: "Report submitted successfully. We couldn’t fully verify the image, but it has been added for manual review."
+       });
+    }
+
+    if (reportTag === 'spam' || reportTag === 'irrelevant' || mlDecision === 'needs_review' || trustScore < 0.4) {
+      return res.status(201).json({
+        ...responseData,
+        message: "Report submitted successfully. Marked for manual review."
+      });
+    }
+    
+    res.status(201).json({
+      ...responseData,
+      message: "Report submitted successfully."
+    });
   } catch (error) {
     console.error("Error creating complaint:", error);
     res.status(500).json({ error: "Server error" });
@@ -926,6 +1066,106 @@ const moderatorByCategory = async (req, res) => {
   }
 };
 
+const deleteComplaint = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const userId = req.user?.id || req.user?._id;
+
+    console.log(`[DeleteComplaint] Request to delete ${complaintId} by user ${userId}`);
+
+    if (!mongoose.Types.ObjectId.isValid(complaintId)) {
+      return res.status(400).json({ message: "Invalid complaint ID" });
+    }
+
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) {
+      console.warn(`[DeleteComplaint] Complaint ${complaintId} not found`);
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // Citizen side: Only owner can delete
+    const ownerId = String(complaint.userId || '');
+    const requesterId = String(userId || '');
+
+    if (!requesterId || ownerId !== requesterId) {
+      console.warn(`[DeleteComplaint] Unauthorized delete attempt. Owner: ${ownerId}, Requester: ${requesterId}`);
+      return res.status(403).json({ message: "Unauthorized: You can only delete your own reports" });
+    }
+
+    // Delete photo from disk
+    if (complaint.photo) {
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const serverRoot = path.join(__dirname, '..'); // Up one level from server/controllers to server
+      const photoPath = path.join(serverRoot, complaint.photo.startsWith('/') ? complaint.photo.slice(1) : complaint.photo);
+      console.log(`[DeleteComplaint] Attempting to delete file: ${photoPath}`);
+      await safelyDeleteUploadedFile(photoPath);
+    }
+
+    await Complaint.findByIdAndDelete(complaintId);
+    console.log(`[DeleteComplaint] Success: Deleted ${complaintId}`);
+    res.status(200).json({ message: "Report deleted successfully" });
+  } catch (error) {
+    console.error("[DeleteComplaint] Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * AI Feedback Loop (recruiter-ready)
+ * Allows moderators to correct labels and mark if the model was correct.
+ */
+const submitAiFeedback = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const { isModelCorrect, correctedLabel } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(complaintId)) {
+      return res.status(400).json({ message: "Invalid complaint ID" });
+    }
+
+    const complaint = await Complaint.findByIdAndUpdate(
+      complaintId,
+      {
+        isModelCorrect,
+        correctedLabel,
+        // If corrected, we might want to update the category/prediction internally too
+        mlPrediction: isModelCorrect ? complaint.mlPrediction : correctedLabel
+      },
+      { new: true }
+    );
+
+    if (!complaint) return res.status(404).json({ message: "Complaint not found" });
+
+    res.json({ message: "Feedback submitted. AI improved.", complaint });
+  } catch (err) {
+    console.error("Error in submitAiFeedback:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Analytics & Heatmap Aggregation
+ */
+const getHeatmapStats = async (req, res) => {
+  try {
+    const stats = await Complaint.aggregate([
+      { $match: { reportTag: { $ne: 'quarantined' } } },
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 },
+          avgTrust: { $avg: "$trustScore" },
+          locations: { $push: "$location" }
+        }
+      }
+    ]);
+    res.json(stats);
+  } catch (err) {
+    console.error("Error in heatmap stats:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export default {
   getDepartments,
   getDepartmentById,
@@ -939,7 +1179,10 @@ export default {
   communityValidate,
   removeCommunityValidate,
   likeComplaint,
-  dislikeComplaint
-  ,getComplaint,
-  moderatorByCategory
+  dislikeComplaint,
+  getComplaint,
+  moderatorByCategory,
+  deleteComplaint,
+  submitAiFeedback,
+  getHeatmapStats
 };

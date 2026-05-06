@@ -1,39 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { FiMap, FiList, FiFilter, FiLayers } from 'react-icons/fi';
-import API from '../../api';
-import CitizenSidebar from '../../components/CitizenSidebar';
+import { FiMap, FiList, FiFilter, FiLayers, FiActivity, FiMapPin } from 'react-icons/fi';
+import API from '../../api/api.js';
 import HeatmapMap from '../../components/HeatmapMap';
+import { motion } from 'framer-motion';
 
 const ExploreHeatmap = () => {
   const [points, setPoints] = useState([]);
   const [filteredPoints, setFilteredPoints] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Toggles & Filters
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  const categories = ["Sanitization", "Cleanliness", "Electricity", "Road", "Water", "Public Safety", "Other"];
-
-  useEffect(() => {
-    fetchHeatmapData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedCategory) {
-      setFilteredPoints(points.filter(p => p.category === selectedCategory || !p.category)); // API might not return category, need to handle if we want real filtering. Our API doesn't return category in heatmap data right now. Wait, I should add category to the backend heatmap route if we want to filter on frontend, or re-fetch with category query. Let's re-fetch with query.
-    } else {
-      setFilteredPoints(points);
-    }
-  }, [points, selectedCategory]);
+  const categories = ["Sanitization", "Cleanliness", "Electricity", "Road", "Water", "Public Safety"];
 
   const fetchHeatmapData = async () => {
     setLoading(true);
     try {
       const url = selectedCategory ? `/api/analytics/heatmap?category=${encodeURIComponent(selectedCategory)}` : '/api/analytics/heatmap';
       const res = await API.get(url);
-      setPoints(res.data);
+      setPoints(res.data || []);
+      setFilteredPoints(res.data || []);
     } catch (error) {
       console.error('Failed to fetch heatmap data:', error);
     } finally {
@@ -41,113 +28,123 @@ const ExploreHeatmap = () => {
     }
   };
 
-  // Re-fetch when category changes
   useEffect(() => {
     fetchHeatmapData();
-    // eslint-disable-next-line
   }, [selectedCategory]);
 
-
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", backgroundColor: "#f5f7fa" }}>
-      <CitizenSidebar />
-      <div className="flex-grow-1 p-4 d-flex flex-column" style={{ overflow: "hidden", height: "100vh" }}>
-        
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+    <div className="flex-grow-1 p-0 d-flex flex-column" style={{ height: 'calc(100vh - 10px)', background: '#F9FAFB' }}>
+      
+      {/* Premium Analytics Header */}
+      <header className="px-lg-5 px-3 py-4 bg-white border-bottom shadow-sm" style={{ zIndex: 10 }}>
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
           <div>
-            <h2 className="fw-bold mb-1" style={{ color: "#1a1a1a" }}>Explore Issues</h2>
-            <p className="text-muted mb-0">Discover civic issues in your city via Heatmap</p>
+            <div className="d-flex align-items-center gap-2 mb-1">
+               <span className="px-2 py-0 rounded bg-dark text-white fw-black" style={{ fontSize: '0.6rem', letterSpacing: '1px' }}>EXPLORE</span>
+               <span className="text-muted small fw-bold">GLOBAL INSIGHTS</span>
+            </div>
+            <h1 className="fw-black mb-0 text-dark" style={{ fontSize: '1.8rem', letterSpacing: '-1px' }}>HEATMAP ANALYTICS<span style={{ color: '#FF7A45' }}>.</span></h1>
           </div>
-          
-          <div className="d-flex gap-3 align-items-center bg-white p-2 rounded-pill shadow-sm px-4 border">
-            <div className="d-flex align-items-center me-3 border-end pe-3">
-              <FiLayers className="text-muted me-2" />
-              <div className="form-check form-switch mb-0">
-                <input className="form-check-input" type="checkbox" role="switch" id="heatToggle" 
-                  checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} />
-                <label className="form-check-label small fw-bold" htmlFor="heatToggle">Heatmap</label>
-              </div>
-            </div>
-            
-            <div className="d-flex align-items-center">
-              <div className="form-check form-switch mb-0">
-                <input className="form-check-input" type="checkbox" role="switch" id="markerToggle" 
-                  checked={showMarkers} onChange={(e) => setShowMarkers(e.target.checked)} />
-                <label className="form-check-label small fw-bold" htmlFor="markerToggle">Markers</label>
-              </div>
-            </div>
+
+          <div className="d-flex align-items-center gap-3">
+             <div className="d-flex align-items-center bg-light px-3 py-2 rounded-pill gap-3 border border-light">
+                <div className="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                   <input className="form-check-input mt-0 cursor-pointer" type="checkbox" checked={showHeatmap} onChange={e => setShowHeatmap(e.target.checked)} />
+                   <label className="small fw-black text-muted text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Heatmap</label>
+                </div>
+                <div className="vr opacity-10" style={{ height: '16px' }}></div>
+                <div className="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                   <input className="form-check-input mt-0 cursor-pointer" type="checkbox" checked={showMarkers} onChange={e => setShowMarkers(e.target.checked)} />
+                   <label className="small fw-black text-muted text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Markers</label>
+                </div>
+             </div>
+             
+             <select 
+               className="form-select form-select-sm border-0 bg-light px-4 rounded-pill fw-bold text-muted shadow-none" 
+               style={{ width: '180px', fontSize: '0.8rem', height: '40px' }}
+               value={selectedCategory} 
+               onChange={e => setSelectedCategory(e.target.value)}
+             >
+               <option value="">All Categories</option>
+               {categories.map(c => <option key={c} value={c}>{c}</option>)}
+             </select>
           </div>
         </div>
+      </header>
 
-        <div className="row flex-grow-1 overflow-hidden g-4">
-          
-          {/* Map Section */}
-          <div className="col-lg-8 col-xl-9 h-100 pb-2">
-            <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
-              {loading && (
-                <div className="position-absolute top-50 start-50 translate-middle z-3 bg-white p-3 rounded-circle shadow">
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                </div>
-              )}
-              <HeatmapMap 
-                points={filteredPoints} 
-                showHeatmap={showHeatmap} 
-                showMarkers={showMarkers} 
-              />
-            </div>
-          </div>
+      {/* Main Split View */}
+      <div className="flex-grow-1 row g-0 overflow-hidden">
+        
+        {/* Map View */}
+        <div className="col-lg-8 col-xl-9 position-relative h-100">
+           {loading && (
+             <div className="position-absolute top-50 start-50 translate-middle z-3">
+                <div className="spinner-border text-dark"></div>
+             </div>
+           )}
+           <HeatmapMap points={filteredPoints} showHeatmap={showHeatmap} showMarkers={showMarkers} />
+        </div>
 
-          {/* Sidebar Panel for Explore */}
-          <div className="col-lg-4 col-xl-3 h-100 pb-2 d-flex flex-column">
-            <div className="card border-0 shadow-sm rounded-4 flex-grow-1 overflow-hidden d-flex flex-column bg-white">
-              <div className="p-4 border-bottom">
-                <h5 className="fw-bold mb-3 d-flex align-items-center">
-                  <FiFilter className="me-2 text-primary" /> Filter by Category
-                </h5>
-                <select 
-                  className="form-select rounded-3 py-2" 
-                  value={selectedCategory} 
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  <option value="">All Categories</option>
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+        {/* Sidebar Data Panel */}
+        <div className="col-lg-4 col-xl-3 h-100 bg-white border-start d-flex flex-column shadow-lg">
+           <div className="p-4 border-bottom">
+              <h6 className="fw-black mb-1 text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Incident Distribution</h6>
+              <p className="text-muted small mb-0">Analyzed from {points.length} reported datapoints.</p>
+           </div>
+           
+           <div className="flex-grow-1 overflow-auto p-4 bg-light">
+              <div className="d-flex flex-column gap-3">
+                 {filteredPoints.length === 0 ? (
+                   <div className="text-center py-5 opacity-40">
+                      <FiActivity size={32} className="mb-2" />
+                      <div className="small fw-bold">NO LOCAL DATA</div>
+                   </div>
+                 ) : (
+                   filteredPoints.slice(0, 15).map((p, i) => (
+                     <motion.div 
+                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
+                        key={p.id || i} 
+                        className="p-3 bg-white border border-light shadow-sm" style={{ borderRadius: '18px' }}
+                     >
+                        <div className="d-flex justify-content-between align-items-start mb-2">
+                           <div className="d-flex flex-column gap-1">
+                              <span className="px-2 py-1 rounded fw-black text-uppercase" style={{ fontSize: '0.6rem', background: p.status === 'Resolved' ? 'rgba(52,199,89,0.1)' : 'rgba(255,122,69,0.1)', color: p.status === 'Resolved' ? '#34C759' : '#FF7A45' }}>
+                                 {p.status || 'PENDING'}
+                              </span>
+                              {p.mlReviewStatus && (
+                                 <span className="px-2 py-0.5 rounded text-white fw-black" style={{ fontSize: '0.5rem', background: p.mlReviewStatus === 'AI Verified' ? '#34C759' : '#FF7A45', letterSpacing: '0.2px' }}>
+                                    {p.mlReviewStatus.toUpperCase()}
+                                 </span>
+                              )}
+                           </div>
+                           <span className="text-muted fw-bold small" style={{ fontSize: '0.65rem' }}>{p.category?.toUpperCase() || 'GENERAL'}</span>
+                        </div>
+                        <div className="d-flex align-items-center gap-2 text-dark small fw-bold">
+                           <FiMapPin size={12} className="text-danger" />
+                           <span className="text-truncate">{p.district || 'Localized Issue'}</span>
+                        </div>
+                     </motion.div>
+                   ))
+                 )}
               </div>
-              
-              <div className="p-4 flex-grow-1 overflow-auto" style={{ backgroundColor: "#f8f9fa" }}>
-                <h6 className="fw-bold mb-3 d-flex align-items-center text-muted">
-                  <FiList className="me-2" /> Recent Nearby ({filteredPoints.length})
-                </h6>
-                
-                {filteredPoints.length === 0 && !loading && (
-                  <div className="text-center text-muted py-4 small">
-                    No issues found for this filter.
-                  </div>
-                )}
+           </div>
 
-                <div className="d-flex flex-column gap-3">
-                  {filteredPoints.slice(0, 10).map((p, idx) => (
-                    <div key={p.id || idx} className="bg-white p-3 rounded-3 shadow-sm border-start border-4" style={{ borderColor: p.status === 'Resolved' ? '#4CAF50' : '#FF9800' }}>
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <span className="badge" style={{ backgroundColor: p.status === 'Resolved' ? '#E8F5E9' : '#FFF3E0', color: p.status === 'Resolved' ? '#2E7D32' : '#E65100' }}>
-                          {p.status}
-                        </span>
-                        <span className="text-muted small" style={{ fontSize: "0.75rem" }}>
-                          Dist: {p.district || 'Unknown'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+           <div className="p-4 border-top bg-white">
+              <div className="d-flex justify-content-between align-items-center">
+                 <div className="small fw-bold text-muted">Density Score</div>
+                 <div className="fw-black text-dark">{points.length > 50 ? 'HIGH' : 'STABLE'}</div>
               </div>
-            </div>
-          </div>
-          
+              <div className="progress mt-2" style={{ height: '4px' }}>
+                 <div className="progress-bar bg-dark" style={{ width: `${Math.min(points.length, 100)}%` }}></div>
+              </div>
+           </div>
         </div>
       </div>
+
+      <style>{`
+        .fw-black { font-weight: 900; }
+        .cursor-pointer { cursor: pointer; }
+      `}</style>
     </div>
   );
 };

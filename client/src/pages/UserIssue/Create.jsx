@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import API from "../../api.js";
-import CitizenSidebar from "../../components/CitizenSidebar";
-import { FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, FiSend, FiArrowLeft, FiEye } from 'react-icons/fi';
-// AI image validation removed
+import API from "../../api/api.js";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, 
+  FiSend, FiArrowLeft, FiEye, FiType, FiLayers, FiInfo
+} from 'react-icons/fi';
+
+const categories = ["Sanitization", "Electricity", "Road", "Water", "Public Safety", "Public Works"];
 
 const Create = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
   const [addressLine, setAddressLine] = useState("");
   const [landmark, setLandmark] = useState("");
   const [city, setCity] = useState("New Delhi");
@@ -18,958 +21,295 @@ const Create = () => {
   const [stateName, setStateName] = useState("Delhi");
   const [pincode, setPincode] = useState("");
   const [autoDetectLoading, setAutoDetectLoading] = useState(false);
-  const [department, setDepartment] = useState("");
-  const [departments, setDepartments] = useState([]);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoError, setPhotoError] = useState("");
-  const [photoValidationMsg, setPhotoValidationMsg] = useState("");
-  const [verifyingPhoto, setVerifyingPhoto] = useState(false);
-  const [validationRetryable, setValidationRetryable] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
+  const [imageSource, setImageSource] = useState("gallery");
   const [submitting, setSubmitting] = useState(false);
-  // Handle photo selection & basic verification
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) {
-      setPhoto(null);
-      setPhotoPreview(null);
-      setPhotoError("");
-      setPhotoValidationMsg("");
-      setValidationRetryable(false);
-      return;
-    }
+  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [error, setError] = useState("");
 
-    if (!file.type.startsWith("image/")) {
-      setPhotoError("Only image files are allowed.");
-      setPhoto(null);
-      setPhotoPreview(null);
-      setPhotoValidationMsg("");
-      setValidationRetryable(false);
-      return;
-    }
-
+  const handlePhotoChange = (e, source = 'gallery') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setPhotoError("File size must be less than 5MB.");
-      setPhoto(null);
-      setPhotoPreview(null);
-      setPhotoValidationMsg("");
-      setValidationRetryable(false);
+      setPhotoError("Image must be under 5MB");
       return;
     }
-
     setPhoto(file);
-    setPhotoError("");
-    setPhotoValidationMsg("");
-    setValidationRetryable(false);
     setPhotoPreview(URL.createObjectURL(file));
-
-    // No AI validation — only basic client-side checks
+    setImageSource(source);
+    setPhotoError("");
   };
-            
+
   const handleAutoDetect = () => {
-    setErrorMsg("");
-    setSuccessMsg("");
     setAutoDetectLoading(true);
-
-    if (!navigator.geolocation) {
-      setErrorMsg('Geolocation is not supported by your browser.');
-      setAutoDetectLoading(false);
-      return;
-    }
-
-    const resolvePosition = async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const resp = await API.get('/api/geocode/reverse', {
-            params: { lat: latitude, lon: longitude }
-          });
-          const data = resp?.data;
-          if (!data) throw new Error('Reverse geocoding failed');
-          const addr = data.address || {};
-          const addressData = {
-            street: addr.road ? `${addr.house_number ? addr.house_number + ' ' : ''}${addr.road}` : (addr.neighbourhood || addr.suburb || ''),
-            locality: addr.suburb || addr.neighbourhood || addr.city || addr.town || 'New Delhi',
-            district: addr.county || addr.city_district || addr.state_district || '',
-            state: addr.state || 'Delhi',
-            pincode: addr.postcode || '',
-            landmark: addr.amenity || addr.shop || ''
-          };
-
-          const formatted = data.display_name || '';
-
-          setAddressLine(addressData.street || formatted);
-          setCity(addressData.locality);
-          setDistrict(addressData.district);
-          setStateName(addressData.state);
-          setPincode(addressData.pincode);
-          if (addressData.landmark) setLandmark(addressData.landmark);
-          setLocation(formatted);
-          setSuccessMsg('Location detected successfully!');
-        } catch (error) {
-          console.error('Geocoding error:', error);
-          setErrorMsg('Failed to fetch address. Please check your internet connection and try again.');
-        } finally {
-          setAutoDetectLoading(false);
-        }
-    };
-
-    const onPositionError = (error, isRetry) => {
-      if (!isRetry && error?.code === 3) {
-        navigator.geolocation.getCurrentPosition(
-          resolvePosition,
-          (retryError) => onPositionError(retryError, true),
-          { enableHighAccuracy: false, timeout: 30000, maximumAge: 120000 }
-        );
-        return;
-      }
-
-      setAutoDetectLoading(false);
-      console.error('Geolocation error:', error);
-      switch (error.code) {
-        case 1:
-          setErrorMsg("Location access denied. To enable:\n• Click the location/lock icon in your browser's address bar\n• Select 'Allow' for location\n• Refresh the page and try again");
-          break;
-        case 2:
-          setErrorMsg("Location information unavailable. Please:\n• Check if location services are enabled on your device\n• Ensure you have GPS/WiFi enabled\n• Try again in a few seconds");
-          break;
-        case 3:
-          setErrorMsg("Location request timed out. Please try auto-detect again in open sky or enter address manually.");
-          break;
-        default:
-          setErrorMsg('Unable to retrieve your location. Please enter location manually or try again.');
-      }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      resolvePosition,
-      (error) => onPositionError(error, false),
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-    );
-  };
-
-  // Fetch departments from server for category -> department mapping
-  useEffect(() => {
-    let mounted = true;
-    const fetchDepartments = async () => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
       try {
-        const resp = await API.get('/api/complaints/departments');
-        if (mounted && resp?.data) {
-          // controller returns { data: [...] } or array
-          const list = Array.isArray(resp.data) ? resp.data : (resp.data.data || resp.data);
-          setDepartments(list || []);
-        }
+        const { latitude, longitude } = pos.coords;
+        const { data } = await API.get('/api/geocode/reverse', { params: { lat: latitude, lon: longitude } });
+        const addr = data.address || {};
+        setAddressLine(addr.road || addr.suburb || "");
+        setDistrict(addr.county || addr.city_district || "");
+        setPincode(addr.postcode || "");
+        if (addr.amenity) setLandmark(addr.amenity);
       } catch (err) {
-        console.error('Failed to load departments:', err);
+        console.error(err);
+      } finally {
+        setAutoDetectLoading(false);
       }
-    };
-    fetchDepartments();
-    return () => { mounted = false; };
-  }, []);
-
-  const getFilteredDepartments = () => {
-    if (!category) return departments;
-    const cat = String(category).toLowerCase();
-    return departments.filter(d => {
-      const name = String(d.name || '').toLowerCase();
-      const c = String(d.category || '').toLowerCase();
-      const sub = String(d.subcategory || '').toLowerCase();
-      return c === cat || sub.includes(cat) || name.includes(cat);
-    });
+    }, () => setAutoDetectLoading(false));
   };
 
+  const [duplicateMessage, setDuplicateMessage] = useState("");
 
-  const processFieldInput = (section, field, text) => {
-    // Extract the value after common patterns
-    let value = text.trim();
-    
-    // Remove field name prefixes like "problem title is", "category is", etc.
-    value = value
-      .replace(/^(problem\s+)?title\s+is\s+/i, '')
-      .replace(/^category\s+is\s+/i, '')
-      .replace(/^department\s+is\s+/i, '')
-      .replace(/^(problem\s+)?description\s+is\s+/i, '')
-      .replace(/^address\s+(line\s+)?is\s+/i, '')
-      .replace(/^landmark\s+is\s+/i, '')
-      .replace(/^district\s+is\s+/i, '')
-      .replace(/^city\s+is\s+/i, '')
-      .replace(/^pincode\s+is\s+/i, '')
-      .trim();
-
-    // Convert spoken numbers to digits
-    const convertSpokenNumbers = (str) => {
-      const numberMap = {
-        'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
-        'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
-        'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13', 'fourteen': '14',
-        'fifteen': '15', 'sixteen': '16', 'seventeen': '17', 'eighteen': '18', 'nineteen': '19',
-        'twenty': '20', 'thirty': '30', 'forty': '40', 'fifty': '50',
-        'sixty': '60', 'seventy': '70', 'eighty': '80', 'ninety': '90',
-        'hundred': '100', 'thousand': '1000'
-      };
-
-      let result = str;
-      
-      // Handle compound numbers like "fifty five" -> "55"
-      result = result.replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)\s+(one|two|three|four|five|six|seven|eight|nine)\b/gi, (match, tens, ones) => {
-        return String(parseInt(numberMap[tens.toLowerCase()]) + parseInt(numberMap[ones.toLowerCase()]));
-      });
-
-      // Replace individual number words
-      Object.keys(numberMap).forEach(word => {
-        const regex = new RegExp('\\b' + word + '\\b', 'gi');
-        result = result.replace(regex, numberMap[word]);
-      });
-
-      return result;
-    };
-
-    // Convert spoken symbols to actual symbols (for addresses)
-    const convertSpokenSymbols = (str) => {
-      return str
-        .replace(/\s+dash\s+/gi, '-')
-        .replace(/\s+slash\s+/gi, '/')
-        .replace(/\s+hyphen\s+/gi, '-')
-        .replace(/\s+comma\s+/gi, ', ')
-        .replace(/\s+dot\s+/gi, '.')
-        .replace(/\s+hash\s+/gi, '#')
-        .replace(/\s+number\s+/gi, '#')
-        .replace(/\s+at\s+/gi, '@')
-        .replace(/\s+and\s+/gi, ' & ')
-        .replace(/\s+plus\s+/gi, '+');
-    };
-
-    if (section === 'issue') {
-      switch (field) {
-        case 'title':
-          // Clean up and limit title length
-          const cleanTitle = value.charAt(0).toUpperCase() + value.slice(1);
-          setTitle(cleanTitle.length > 50 ? cleanTitle.substring(0, 50) + '...' : cleanTitle);
-          break;
-        
-        case 'category':
-          // Match category from spoken text
-          const categoryMap = {
-            'sanitization': 'Sanitization',
-            'cleanliness': 'Cleanliness',
-            'electricity': 'Electricity',
-            'electric': 'Electricity',
-            'power': 'Electricity',
-            'road': 'Road',
-            'water': 'Water',
-            'public safety': 'Public Safety',
-            'safety': 'Public Safety'
-          };
-          
-          const lowerValue = value.toLowerCase();
-          for (const [key, cat] of Object.entries(categoryMap)) {
-            if (lowerValue.includes(key)) {
-              setCategory(cat);
-              break;
-            }
-          }
-          break;
-        
-        case 'description':
-          setDescription(value);
-          break;
-      }
-    } else if (section === 'location') {
-      switch (field) {
-        case 'addressLine':
-          // Convert spoken numbers and symbols to actual format
-          let formattedAddress = convertSpokenNumbers(value);
-          formattedAddress = convertSpokenSymbols(formattedAddress);
-          setAddressLine(formattedAddress);
-          break;
-        
-        case 'landmark':
-          setLandmark(value);
-          break;
-        
-        case 'district':
-          // Match Delhi districts
-          const districts = [
-            'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi',
-            'New Delhi', 'North East Delhi', 'North West Delhi', 'Shahdara',
-            'South East Delhi', 'South West Delhi'
-          ];
-          
-          const matchedDistrict = districts.find(d => 
-            value.toLowerCase().includes(d.toLowerCase())
-          );
-          if (matchedDistrict) {
-            setDistrict(matchedDistrict);
-          } else {
-            setDistrict(value);
-          }
-          setCity('New Delhi');
-          setStateName('Delhi');
-          break;
-        
-        case 'pincode':
-          // Convert spoken numbers to digits
-          const convertedPincode = convertSpokenNumbers(value);
-          // Extract 6-digit pincode
-          const pincodeMatch = convertedPincode.match(/\d{6}/);
-          if (pincodeMatch) {
-            setPincode(pincodeMatch[0]);
-          }
-          break;
-      }
-    }
-  };
-
-  
-
-  const runImageValidation = async () => {
-    if (!photo) {
-      setPhotoValidationMsg("");
-      setErrorMsg("Photo is required for validation.");
-      setValidationRetryable(false);
-      return false;
-    }
-
-    const validateData = new FormData();
-    validateData.append("category", category);
-    validateData.append("title", title.trim());
-    validateData.append("description", description.trim());
-    validateData.append("photo", photo);
-
-    try {
-      setVerifyingPhoto(true);
-      setPhotoValidationMsg("Verifying image with ML model...");
-      setValidationRetryable(false);
-      setErrorMsg("");
-
-      const validationResponse = await API.post("/api/complaints/validate-image", validateData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
-      if (validationResponse?.data?.valid === false) {
-        setPhotoValidationMsg("");
-        setErrorMsg(validationResponse?.data?.message || "Image does not match complaint context.");
-        return false;
-      }
-
-      const decision = String(validationResponse?.data?.decision || '').trim().toLowerCase();
-      setPhotoValidationMsg(
-        decision && decision !== 'verified'
-          ? 'Possible issue detected, marked for review'
-          : 'Image verified.'
-      );
-      return true;
-    } catch (validationError) {
-      if (validationError?.response?.status === 401) {
-        setPhotoValidationMsg("");
-        localStorage.removeItem("token");
-        window.dispatchEvent(new Event("authChanged"));
-        setErrorMsg("Session expired. Please log in again and retry.");
-        return false;
-      }
-
-      if (validationError?.response?.status === 404) {
-        setPhotoValidationMsg("");
-        setErrorMsg("Image validation endpoint is missing on backend. Deploy latest server changes and try again.");
-        return false;
-      }
-
-      if (validationError?.response?.status === 400) {
-        setPhotoValidationMsg("");
-        setErrorMsg(validationError?.response?.data?.error || validationError?.response?.data?.message || "Image does not match complaint context.");
-        return false;
-      }
-
-      const status = validationError?.response?.status;
-      if (status === 502 || status === 503) {
-        setPhotoValidationMsg("");
-        setErrorMsg(validationError?.response?.data?.error || "Image validation service unavailable. Please retry.");
-        setValidationRetryable(true);
-        return false;
-      }
-
-      setPhotoValidationMsg("");
-      setErrorMsg(
-        validationError?.response?.data?.error
-        || validationError?.response?.data?.message
-        || validationError?.message
-        || "Image validation failed."
-      );
-      return false;
-    } finally {
-      setVerifyingPhoto(false);
-    }
-  };
-
-
-  // Handle form submission -> send multipart/form-data to server
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg("");
-    setSuccessMsg("");
-
-    if (!title.trim() || !category || !description.trim() || (!location.trim() && !addressLine.trim())) {
-      setErrorMsg("Please fill all required fields (provide location or address line).");
-      return;
-    }
-
-    if (!photo) {
-      setPhotoError("Photo is required before submitting.");
-      return;
-    }
-
-    // Auto-select department if not selected
-    let selectedDept = department;
-    if (!selectedDept && category && departments.length > 0) {
-      const filtered = getFilteredDepartments();
-      if (filtered.length > 0) {
-        selectedDept = filtered[0]._id;
-        setDepartment(selectedDept);
-      }
-    }
-
-    if (!selectedDept) {
-      setErrorMsg("Unable to assign department. Please select a category.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("title", title.trim());
-    formData.append("category", category);
-    formData.append("description", description.trim());
-    formData.append("location", location.trim() || addressLine.trim());
-    formData.append("addressLine", addressLine.trim());
-    formData.append("landmark", landmark.trim());
-    formData.append("city", city.trim());
-    formData.append("district", district.trim());
-    formData.append("state", stateName.trim());
-    formData.append("pincode", pincode.trim());
-    formData.append("department", selectedDept);
-    formData.append("photo", photo);
-
+    setSubmitting(true);
+    setError("");
+    setDuplicateMessage("");
     try {
-      setSubmitting(true);
-      setValidationRetryable(false);
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("category", category);
+      formData.append("description", description);
+      formData.append("location", `${addressLine}, ${city}`);
+      formData.append("district", district);
+      formData.append("pincode", pincode);
+      formData.append("imageSource", imageSource);
+      if (photo) formData.append("photo", photo);
 
-      const isValid = await runImageValidation();
-      if (!isValid) return;
-
-      setVerifyingPhoto(true);
-      setPhotoValidationMsg("Submitting complaint...");
-
-      const storedUser = localStorage.getItem("user");
-      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
-      if (parsedUser?.id) formData.append("userId", parsedUser.id);
-
-      const res = await API.post("/api/complaints", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-      setSuccessMsg("Complaint submitted successfully.");
-      // reset form
-      setTitle("");
-      setCategory("");
-      setDescription("");
-      setLocation("");
-      setAddressLine("");
-      setLandmark("");
-      setCity("New Delhi");
-      setDistrict("");
-      setStateName("Delhi");
-      setPincode("");
-      setPhoto(null);
-      setPhotoPreview(null);
-      setPhotoError("");
-      setPhotoValidationMsg("");
-      navigate("/dashboard");
+      const { data } = await API.post("/api/complaints", formData);
+      setSuccessMessage(data.message || "Report submitted successfully.");
+      if (data.message && data.isDuplicate) {
+        setDuplicateMessage(data.message);
+      }
+      setSuccess(true);
+      setTimeout(() => navigate("/track-issue"), 4000);
     } catch (err) {
-      if (err?.response?.status === 401) {
-        localStorage.removeItem("token");
-        window.dispatchEvent(new Event("authChanged"));
-        setPhotoValidationMsg("");
-        setErrorMsg("Session expired. Please log in again and retry.");
-        return;
-      }
-
-      if (err?.response?.status >= 400 && err?.response?.status < 500) {
-        console.warn('Submission rejected:', err.response?.data?.error || err.response?.data?.message || err.message);
-      } else {
-        console.error(err);
-      }
-
-      const status = err?.response?.status;
-      const retryable = (status === 502 || status === 503) && Boolean(err?.response?.data?.retryable);
-      setValidationRetryable(retryable);
-
-      setPhotoValidationMsg("");
-      setErrorMsg(err.response?.data?.error || err.response?.data?.message || err.message || "Submission failed. Try again.");
+      console.error(err);
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to submit report. Please try again.";
+      setError(msg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
-      setVerifyingPhoto(false);
       setSubmitting(false);
     }
   };
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  };
+
+  if (success) {
+    return (
+      <div className="flex-grow-1 d-flex align-items-center justify-content-center bg-white">
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center px-4">
+          <div className="mb-4 d-inline-flex p-4 rounded-circle" style={{ background: successMessage.includes('review') || successMessage.includes('Similar') ? 'rgba(255,122,69,0.1)' : 'rgba(52,199,89,0.1)', color: successMessage.includes('review') || successMessage.includes('Similar') ? '#FF7A45' : '#34C759' }}>
+            {successMessage.includes('review') || successMessage.includes('Similar') ? <FiInfo size={60} /> : <FiCheckCircle size={60} />}
+          </div>
+          <h2 className="fw-black mb-2" style={{ letterSpacing: '-1px' }}>{successMessage.includes('Similar') ? 'ISSUE LOGGED' : 'THANK YOU'}</h2>
+          <p className="text-muted mb-4 fw-medium" style={{ maxWidth: '400px' }}>{successMessage || "Redirecting you to the activity tracker..."}</p>
+          <div className="d-flex justify-content-center">
+             <div className="spinner-border spinner-border-sm text-muted opacity-25" role="status"></div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", backgroundColor: "#f5f7fa" }}>
-      <CitizenSidebar />
-      <div className="flex-grow-1" style={{ overflow: "auto", backgroundColor: "#f5f7fa" }}>
-        {/* Header */}
-        <section
-          className="py-3 px-4 bg-white border-bottom"
-          style={{ position: "sticky", top: 0, zIndex: 100 }}
-        >
-          <div className="d-flex align-items-center">
-            <button
-              className="btn btn-sm me-3"
-              onClick={() => navigate("/dashboard")}
-              style={{ backgroundColor: "white", border: "none" }}
+    <motion.div 
+      initial="hidden" animate="visible" variants={containerVariants}
+      className="flex-grow-1 px-lg-5 px-3 py-5" 
+      style={{ background: '#F9FAFB' }}
+    >
+      {/* Header */}
+      <header className="mb-5">
+        <button onClick={() => navigate(-1)} className="btn btn-link text-dark p-0 mb-4 text-decoration-none d-flex align-items-center gap-2 fw-bold small">
+          <FiArrowLeft /> BACK TO PORTAL
+        </button>
+        <h1 className="fw-black mb-1 text-dark" style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', letterSpacing: '-2px', lineHeight: '1' }}>
+          NEW REPORT<span style={{ color: '#FF7A45' }}>.</span>
+        </h1>
+        <p className="text-muted fw-medium">Provide details about the issue to initiate resolution.</p>
+      </header>
+
+      <form onSubmit={handleSubmit} className="row g-5">
+        <AnimatePresence>
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="col-12"
             >
-              <FiArrowLeft style={{ fontSize: "1.2rem", color: "#1a1a1a" }} />
-            </button>
-            <div>
-              <h4 className="mb-1 fw-bold" style={{ color: "#1a1a1a" }}>Submit Complaint</h4>
-              <p className="mb-0 small" style={{ color: "#424242" }}>
-                Report an issue in your area
-              </p>
-            </div>
-          </div>
-        </section>
+              <div className="p-4 rounded-4 d-flex align-items-center gap-3 mb-2" style={{ background: 'rgba(220,53,69,0.05)', border: '1px solid rgba(220,53,69,0.1)', color: '#dc3545' }}>
+                <FiAlertCircle size={20} className="flex-shrink-0" />
+                <div className="fw-bold small">{error}</div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Content */}
-        <section className="py-4 px-4">
-          <div className="container">
-            {errorMsg && (
-          <div className="alert d-flex align-items-center justify-content-between shadow-sm mb-4" style={{ backgroundColor: "#FFEBEE", color: "#C62828", border: "none", borderLeft: "4px solid #D32F2F", borderRadius: "8px", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-            <div className="d-flex align-items-center">
-              <FiAlertCircle className="me-2" style={{ fontSize: "1.3rem", flexShrink: 0 }} />
-              <span>{errorMsg}</span>
-            </div>
-            {validationRetryable && photo && (
-              <button
-                type="button"
-                className="btn btn-sm fw-semibold"
-                style={{ backgroundColor: "#FFB347", color: "#1a1a1a", border: "none" }}
-                onClick={runImageValidation}
-                disabled={submitting || verifyingPhoto}
-              >
-                Retry Image Verification
-              </button>
-            )}
-          </div>
-        )}
-        {successMsg && (
-          <div className="alert d-flex align-items-center shadow-sm mb-4" style={{ backgroundColor: "#E8F5E9", color: "#2E7D32", border: "none", borderLeft: "4px solid #4CAF50", borderRadius: "8px", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-            <FiCheckCircle className="me-2" style={{ fontSize: "1.3rem", flexShrink: 0 }} />
-            <span>{successMsg}</span>
-          </div>
-        )}
-
-        {/* Main Form Card */}
-        <div className="card border-0 shadow-lg" style={{ borderRadius: "16px", overflow: "hidden" }}>
-          {/* Card Header */}
-          <div className="card-header border-0 py-4" style={{ background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)" }}>
-            <h4 className="fw-bold mb-0" style={{ color: "white", fontSize: "1.4rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-              Complaint Information
-            </h4>
+        {/* Left Side: Form Details */}
+        <div className="col-xl-7">
+          <section className="bg-white p-4 p-lg-5 shadow-sm border border-light" style={{ borderRadius: '40px' }}>
+            <h5 className="fw-black mb-4 d-flex align-items-center gap-2">
+              <FiInfo className="text-warning" /> COMPLAINT DATA
+            </h5>
             
-          </div>
-
-          {/* Card Body */}
-          <form className="card-body p-4 p-md-5" style={{ backgroundColor: "white" }} onSubmit={handleSubmit}>
-            <div className="row g-4">
-              {/* Issue Details Section */}
-              <div className="col-12">
-                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF8F0", border: "2px solid #FFD8A8" }}>
-                  <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h5 className="fw-bold mb-0 d-flex align-items-center" style={{ color: "#1a1a1a", fontSize: "1.15rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                      <FiAlertCircle className="me-2" style={{ color: "#FFB347" }} />
-                      Issue Details
-                    </h5>
-                    
-                  </div>
-
-                  {/* Voice Assistant Hint */}
-                  
-
-                  <div className="row g-3 mb-4">
-                    {/* Problem Title */}
-                    <div className="col-md-6">
-                      <div className="form-floating">
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="problemTitle"
-                          placeholder="Problem Title"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
-                          disabled={submitting}
-                          maxLength={60}
-                          style={{
-                            border: "2px solid #e0e0e0",
-                            borderRadius: "10px",
-                            fontSize: "1rem",
-                            fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                            transition: "all 0.3s ease",
-                            fontWeight: "500",
-                            height: "58px"
-                          }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
-                          onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
-                        />
-                        <label htmlFor="problemTitle" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Problem Title <span style={{ color: "#D32F2F" }}>*</span></label>
-                      </div>
-                    </div>
-
-                    {/* Problem Category */}
-                    <div className="col-md-6">
-                      <div className="form-floating">
-                        <select
-                          className="form-select"
-                          id="problemCategory"
-                          value={category}
-                          onChange={(e) => setCategory(e.target.value)}
-                          required
-                          disabled={submitting}
-                          style={{
-                            border: "2px solid #e0e0e0",
-                            borderRadius: "10px",
-                            fontSize: "1rem",
-                            fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                            transition: "all 0.3s ease",
-                            fontWeight: "500",
-                            height: "58px"
-                          }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
-                          onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
-                        >
-                          <option value="" disabled>
-                            Select Category
-                          </option>
-                          <option>Sanitization</option>
-                          <option>Cleanliness</option>
-                          <option>Electricity</option>
-                          <option>Road</option>
-                          <option>Water</option>
-                          <option>Public Safety</option>
-                          <option>Other</option>
-                        </select>
-                        <label htmlFor="problemCategory" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Problem Category <span style={{ color: "#D32F2F" }}>*</span></label>
-                      </div>
-                    </div>
-
-                    {/* Department (auto-suggest / select) */}
-                    <div className="col-md-6">
-                      <div className="form-floating">
-                        <select
-                          className="form-select"
-                          id="departmentSelect"
-                          value={department}
-                          onChange={(e) => setDepartment(e.target.value)}
-                          disabled={submitting}
-                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "58px" }}
-                        >
-                          <option value="">Select Department (optional)</option>
-                          {departments && departments.map((d) => (
-                            <option key={d._id || d.id || d.name} value={d._id || d.id || d.name}>{d.name}{d.category ? ` — ${d.category}` : ''}</option>
-                          ))}
-                        </select>
-                        <label htmlFor="departmentSelect" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Department (optional)</label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Problem Description */}
-                  <div className="form-floating mb-4">
-                    <textarea
-                      className="form-control"
-                      placeholder="Describe your problem"
-                      id="problemDescription"
-                      style={{
-                        height: "120px",
-                        border: "2px solid #e0e0e0",
-                        borderRadius: "10px",
-                        fontSize: "1rem",
-                        fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                        transition: "all 0.3s ease",
-                        fontWeight: "500"
-                      }}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required
-                      disabled={submitting}
-                      onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
-                      onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
-                    ></textarea>
-                    <label htmlFor="problemDescription" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", color: "#616161" }}>Problem Description <span style={{ color: "#D32F2F" }}>*</span></label>
-                  </div>
-                </div>
+            <div className="mb-4">
+              <label className="small fw-black text-muted text-uppercase mb-2" style={{ letterSpacing: '1px' }}>Issue Title</label>
+              <div className="input-group bg-light rounded-4 px-3 py-1">
+                <FiType className="text-muted mt-3 me-2" />
+                <input 
+                  type="text" className="form-control border-0 bg-transparent shadow-none py-3 fw-bold" 
+                  placeholder="e.g. Water leakage in Sector 4" 
+                  value={title} onChange={e => setTitle(e.target.value)} required 
+                />
               </div>
+            </div>
 
-              {/* Location Section */}
-              <div className="col-12">
-                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF8F0", border: "2px solid #FFD8A8" }}>
-                  <h5 className="fw-bold mb-4 d-flex align-items-center" style={{ color: "#1a1a1a", fontSize: "1.15rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                    <FiMapPin className="me-2" style={{ color: "#FFB347" }} />
-                    Location Information <span style={{ color: "#D32F2F" }}>*</span>
-                  </h5>
-
-                  {/* Structured Location Subfields */}
-                  <div className="row g-3">
-                    <div className="col-12">
-                      <div className="form-floating">
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="addressLine"
-                          placeholder="Address line (House number, street)"
-                          value={addressLine}
-                          onChange={(e) => setAddressLine(e.target.value)}
-                          disabled={submitting}
-                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
-                          onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
-                        />
-                        <label htmlFor="addressLine">Address Line <span style={{ color: "#D32F2F" }}>*</span></label>
-                      </div>
-                    </div>
-
-                    <div className="col-md-6">
-                      <div className="form-floating">
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="landmark"
-                          placeholder="Landmark (optional)"
-                          value={landmark}
-                          onChange={(e) => setLandmark(e.target.value)}
-                          disabled={submitting}
-                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                          onFocus={(e) => e.target.style.border = "2px solid #FFB347"}
-                          onBlur={(e) => e.target.style.border = "2px solid #e0e0e0"}
-                        />
-                        <label htmlFor="landmark">Landmark</label>
-                      </div>
-                    </div>
-
-                    <div className="col-md-6">
-                      <div className="form-floating">
-                        <select
-                          className="form-select"
-                          id="district"
-                          value={district}
-                          onChange={(e) => setDistrict(e.target.value)}
-                          disabled={submitting}
-                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                        >
-                          <option value="">Select District</option>
-                          <option>Central Delhi</option>
-                          <option>North Delhi</option>
-                          <option>South Delhi</option>
-                          <option>East Delhi</option>
-                          <option>West Delhi</option>
-                          <option>New Delhi</option>
-                          <option>North East Delhi</option>
-                          <option>North West Delhi</option>
-                          <option>Shahdara</option>
-                          <option>South East Delhi</option>
-                          <option>South West Delhi</option>
-                        </select>
-                        <label htmlFor="district">District</label>
-                      </div>
-                    </div>
-
-                    <div className="col-md-6">
-                      <div className="form-floating">
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="city"
-                          placeholder="City"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          disabled={submitting}
-                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                        />
-                        <label htmlFor="city">City</label>
-                      </div>
-                    </div>
-
-                    <div className="col-md-3">
-                      <div className="form-floating">
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="state"
-                          placeholder="State"
-                          value={stateName}
-                          onChange={(e) => setStateName(e.target.value)}
-                          disabled={submitting}
-                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                        />
-                        <label htmlFor="state">State</label>
-                      </div>
-                    </div>
-
-                    <div className="col-md-3">
-                      <div className="form-floating">
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="pincode"
-                          placeholder="Pin Code"
-                          value={pincode}
-                          onChange={(e) => setPincode(e.target.value)}
-                          disabled={submitting}
-                          style={{ border: "2px solid #e0e0e0", borderRadius: "10px", height: "50px" }}
-                        />
-                        <label htmlFor="pincode">Pin Code</label>
-                      </div>
-                    </div>
-
-                    {/* Auto Detect Button */}
-                    <div className="col-12 text-center mt-3">
-                      <button
-                        type="button"
-                        className="btn fw-semibold px-4 py-3 shadow-sm"
-                        style={{
-                          background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)",
-                          color: "#1a1a1a",
-                          border: "none",
-                          borderRadius: "10px",
-                          fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                          fontSize: "1rem",
-                          transition: "all 0.3s ease"
-                        }}
-                        onClick={handleAutoDetect}
-                        disabled={submitting || autoDetectLoading}
-                      >
-                        <FiMapPin className="me-2" style={{ fontSize: "1.1rem" }} />
-                        {autoDetectLoading ? "Detecting location..." : "Auto-Detect Current Location"}
-                      </button>
-                      <div className="mt-2">
-                        <small className="text-muted" style={{ fontSize: "0.8rem" }}>
-                          💡 Click button → Allow location when browser prompts → Address auto-fills
-                        </small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Photo Upload Section */}
-              <div className="col-12">
-                <div className="p-4 rounded-3" style={{ backgroundColor: "#FFF8F0", border: "2px solid #FFD8A8" }}>
-                  <h5 className="fw-bold mb-4 d-flex align-items-center" style={{ color: "#1a1a1a", fontSize: "1.15rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                    <FiUpload className="me-2" style={{ color: "#FFB347" }} />
-                    Supporting Evidence <span style={{ color: "#D32F2F", fontSize: "0.9rem", marginLeft: "0.25rem" }}>*</span>
-                  </h5>
-
-                  <div className="mb-3">
-                    <input
-                      className="form-control"
-                      type="file"
-                      id="photoUpload"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      disabled={submitting}
-                      required
-                      style={{
-                        border: photoError ? "2px solid #D32F2F" : "2px solid #e0e0e0",
-                        borderRadius: "10px",
-                        padding: "0.75rem",
-                        fontSize: "1rem",
-                        fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                        transition: "all 0.3s ease",
-                        fontWeight: "500"
-                      }}
-                    />
-                    
-                    {photoError && (
-                      <div className="mt-2 d-flex align-items-center" style={{ color: "#D32F2F", fontSize: "0.9rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                        <FiAlertCircle className="me-1" />{photoError}
-                      </div>
-                    )}
-                    {photoValidationMsg && (
-                      <div className="mt-2 d-flex align-items-center" style={{ color: "#2E7D32", fontSize: "0.9rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                        {verifyingPhoto ? (
-                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        ) : (
-                          <FiCheckCircle className="me-1" />
-                        )}
-                        {photoValidationMsg}
-                      </div>
-                    )}
-                    <small className="text-muted d-block mt-2" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                      Maximum file size: 5MB.
-                    </small>
-                  </div>
-
-                  {photoPreview && (
-                    <div className="text-center mt-4">
-                      <div className="border rounded-3 p-3 shadow-sm" style={{ backgroundColor: "white", borderColor: "#FFD8A8" }}>
-                        <p className="small fw-semibold mb-3" style={{ color: "#616161", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                          Image Preview:
-                        </p>
-                        <img
-                          src={photoPreview}
-                          alt="preview"
-                          className="img-fluid rounded"
-                          style={{ maxHeight: "300px", objectFit: "contain", border: "1px solid #e0e0e0" }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="col-12">
-                <div className="text-center pt-3">
-                  <button
-                    type="submit"
-                    className="btn btn-lg fw-bold px-5 py-3 shadow-sm"
-                    style={{
-                      background: "linear-gradient(135deg, #FFB347 0%, #FFD8A8 100%)",
-                      color: "#1a1a1a",
-                      border: "none",
-                      borderRadius: "12px",
-                      minWidth: "280px",
-                      fontSize: "1.1rem",
-                      fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                      transition: "all 0.3s ease",
-                      letterSpacing: "0.3px"
-                    }}
-                    disabled={submitting}
-                    onMouseEnter={(e) => !submitting && (e.target.style.transform = "translateY(-2px)")}
-                    onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
+            <div className="row g-4 mb-4">
+              <div className="col-md-6">
+                <label className="small fw-black text-muted text-uppercase mb-2" style={{ letterSpacing: '1px' }}>Category</label>
+                <div className="input-group bg-light rounded-4 px-3 py-1">
+                  <FiLayers className="text-muted mt-3 me-2" />
+                  <select 
+                    className="form-select border-0 bg-transparent shadow-none py-3 fw-bold"
+                    value={category} onChange={e => setCategory(e.target.value)} required
                   >
-                    {submitting ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        {verifyingPhoto ? "Verifying image..." : "Processing Submission..."}
-                      </>
-                    ) : (
-                      <>
-                        <FiSend className="me-2" style={{ fontSize: "1.2rem" }} />
-                        Submit Complaint
-                      </>
-                    )}
-                  </button>
-                  <p className="text-muted mt-3" style={{ fontSize: "0.95rem", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                    Your complaint will be reviewed within 24-48 hours
-                  </p>
+                    <option value="">Select Category</option>
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <label className="small fw-black text-muted text-uppercase mb-2" style={{ letterSpacing: '1px' }}>Description</label>
+                <textarea 
+                  className="form-control border-0 bg-light shadow-none py-3 fw-bold rounded-4" 
+                  style={{ minHeight: '56px' }}
+                  placeholder="Describe the issue in detail..."
+                  value={description} onChange={e => setDescription(e.target.value)} required
+                />
+              </div>
+            </div>
+
+            <hr className="my-5 opacity-5" />
+
+            <h5 className="fw-black mb-4 d-flex align-items-center gap-2">
+              <FiMapPin className="text-danger" /> GEOSPATIAL DATA
+            </h5>
+
+            <div className="mb-4">
+              <button 
+                type="button" onClick={handleAutoDetect} disabled={autoDetectLoading}
+                className="btn btn-dark w-100 py-3 rounded-pill fw-black d-flex align-items-center justify-content-center gap-2 mb-4"
+              >
+                {autoDetectLoading ? "FETCHING COORDINATES..." : "AUTO-DETECT CURRENT LOCATION"}
+              </button>
+              
+              <div className="row g-4">
+                <div className="col-md-12">
+                  <div className="form-floating bg-light rounded-4">
+                    <input type="text" className="form-control border-0 bg-transparent shadow-none" id="addr" placeholder="Address" value={addressLine} onChange={e => setAddressLine(e.target.value)} required />
+                    <label htmlFor="addr" className="fw-bold text-muted">Street Address / Area</label>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="form-floating bg-light rounded-4">
+                    <input type="text" className="form-control border-0 bg-transparent shadow-none" id="dist" placeholder="District" value={district} onChange={e => setDistrict(e.target.value)} />
+                    <label htmlFor="dist" className="fw-bold text-muted">District</label>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="form-floating bg-light rounded-4">
+                    <input type="text" className="form-control border-0 bg-transparent shadow-none" id="pin" placeholder="Pincode" value={pincode} onChange={e => setPincode(e.target.value)} />
+                    <label htmlFor="pin" className="fw-bold text-muted">Pincode</label>
+                  </div>
                 </div>
               </div>
             </div>
-          </form>
+          </section>
         </div>
-      </div>
-        </section>
-      </div>
-    </div>
+
+        {/* Right Side: Media & Submit */}
+        <div className="col-xl-5">
+          <div className="sticky-top" style={{ top: '2rem' }}>
+            <section className="bg-white p-4 p-lg-5 shadow-sm border border-light mb-4" style={{ borderRadius: '40px' }}>
+              <h5 className="fw-black mb-4 d-flex align-items-center gap-2">
+                <FiUpload className="text-primary" /> VISUAL EVIDENCE
+              </h5>
+              
+              <div 
+                className="position-relative mb-4 overflow-hidden" 
+                style={{ height: '300px', borderRadius: '32px', background: '#f8f9fa', border: '2px dashed #dee2e6' }}
+              >
+                {photoPreview ? (
+                  <>
+                    <img src={photoPreview} className="w-100 h-100" style={{ objectFit: 'cover' }} alt="Preview" />
+                    <button 
+                      type="button" onClick={() => { setPhoto(null); setPhotoPreview(null); }}
+                      className="position-absolute top-0 end-0 m-3 btn btn-danger btn-sm rounded-circle d-flex align-items-center justify-content-center"
+                      style={{ width: '32px', height: '32px' }}
+                    >
+                      &times;
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-center p-4">
+                    <FiUpload size={48} className="text-muted opacity-30 mb-3" />
+                    <div className="fw-black small text-muted">CHOOSE EVIDENCE SOURCE</div>
+                    <div className="d-flex gap-3 mt-4">
+                       <div className="position-relative">
+                          <button type="button" className="btn btn-light rounded-pill px-4 fw-bold small border">GALLERY</button>
+                          <input type="file" className="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" onChange={e => handlePhotoChange(e, 'gallery')} accept="image/*" />
+                       </div>
+                       <div className="position-relative">
+                          <button type="button" className="btn btn-dark rounded-pill px-4 fw-bold small shadow-sm">CAMERA</button>
+                          <input type="file" className="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" onChange={e => handlePhotoChange(e, 'camera')} accept="image/*" capture="environment" />
+                       </div>
+                    </div>
+                    <div className="text-muted x-small mt-4">High-quality images help in faster resolution.</div>
+                  </div>
+                )}
+              </div>
+              {photoError && <div className="text-danger small fw-bold mb-3">{photoError}</div>}
+              
+              <div className="p-3 rounded-4 mb-4" style={{ background: 'rgba(255,122,69,0.05)', border: '1px solid rgba(255,122,69,0.1)' }}>
+                 <div className="d-flex gap-2">
+                    <FiAlertCircle className="text-warning flex-shrink-0 mt-1" />
+                    <p className="small mb-0 text-muted">
+                      Your report will be verified by the community and AI before being assigned to the relevant department.
+                    </p>
+                 </div>
+              </div>
+
+              <button 
+                type="submit" disabled={submitting}
+                className="btn w-100 py-3 rounded-pill fw-black d-flex align-items-center justify-content-center gap-2 shadow-sm transition-all"
+                style={{ background: '#FF7A45', color: '#fff', fontSize: '0.9rem', letterSpacing: '0.5px' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                {submitting ? "SUBMITTING..." : "SUBMIT REPORT"} <FiSend size={16} />
+              </button>
+            </section>
+          </div>
+        </div>
+      </form>
+
+      <style>{`
+        .fw-black { font-weight: 900; }
+        .x-small { font-size: 0.65rem; }
+        .cursor-pointer { cursor: pointer; }
+        .opacity-5 { opacity: 0.05; }
+        input::placeholder, textarea::placeholder { font-weight: 500; opacity: 0.4; }
+      `}</style>
+    </motion.div>
   );
 };
 
 export default Create;
-
-

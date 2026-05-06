@@ -10,6 +10,12 @@ const badgeVariants = cva(
                 "In Progress": "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
                 Resolved: "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20",
                 Rejected: "bg-red-500/10 text-red-500 hover:bg-red-500/20",
+                Duplicate: "bg-slate-500/10 text-slate-500 hover:bg-slate-500/20 border border-slate-200",
+                Verified: "bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border border-indigo-200",
+                "Manual Check": "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20",
+                "Pending Review": "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20",
+                "AI Verified": "bg-emerald-500 text-white",
+                "AI Needs Review": "bg-orange-500 text-white",
             },
         },
         defaultVariants: {

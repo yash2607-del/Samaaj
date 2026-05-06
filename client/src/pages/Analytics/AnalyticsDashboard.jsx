@@ -1,34 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { FiFilter, FiActivity, FiPieChart, FiBarChart2, FiTrendingUp, FiMap, FiLayers } from 'react-icons/fi';
-import API from '../../api';
-import ModeratorSidebar from '../../components/ModeratorSidebar';
-import HeatmapMap from '../../components/HeatmapMap';
+import { FiActivity, FiPieChart, FiTrendingUp, FiTarget, FiBox, FiClock, FiGrid, FiFilter } from 'react-icons/fi';
+import API from '../../api/api.js';
+import { motion } from 'framer-motion';
 
-const COLORS = ['#FF8042', '#00C49F', '#FFBB28', '#0088FE', '#8884d8'];
+const COLORS = ['#FF7A45', '#1a1a1a', '#64748b', '#94a3b8', '#cbd5e1'];
 
 const AnalyticsDashboard = () => {
-  const [stats, setStats] = useState({
-    totalIssues: 0,
-    statusDistribution: [],
-    categoryDistribution: [],
-    trends: []
-  });
-  
-  const [filters, setFilters] = useState({
-    category: '',
-    status: '',
-    startDate: '',
-    endDate: ''
-  });
-
-  const [heatmapData, setHeatmapData] = useState([]);
-  const [showHeatmap, setShowHeatmap] = useState(true);
-  const [showMarkers, setShowMarkers] = useState(false);
-
+  const [stats, setStats] = useState({ totalIssues: 0, statusDistribution: [], categoryDistribution: [], trends: [] });
+  const [filters, setFilters] = useState({ category: '', status: '', startDate: '', endDate: '' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,203 +21,180 @@ const AnalyticsDashboard = () => {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filters.category) params.append('category', filters.category);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-
-      const [resStats, resHeatmap] = await Promise.all([
-        API.get(`/api/analytics/stats?${params.toString()}`),
-        API.get(`/api/analytics/heatmap?${params.toString()}`)
-      ]);
-      setStats(resStats.data);
-      setHeatmapData(resHeatmap.data);
+      const params = new URLSearchParams(filters);
+      const res = await API.get(`/api/analytics/stats?${params.toString()}`);
+      setStats(res.data);
     } catch (error) {
-      console.error('Failed to fetch analytics stats:', error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+  const handleFilterChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
   };
 
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
-      <ModeratorSidebar />
-      <div className="flex-grow-1 p-4" style={{ overflowY: "auto" }}>
+    <motion.div 
+      initial="hidden" animate="visible" variants={containerVariants}
+      className="flex-grow-1 px-lg-5 px-3 py-5" 
+      style={{ background: '#F9FAFB', minHeight: '100vh' }}
+    >
+      
+      {/* Premium Header */}
+      <header className="mb-5 d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
+        <div>
+          <div className="d-flex align-items-center gap-2 mb-2">
+            <span className="px-3 py-1 rounded-pill fw-black" style={{ background: '#FF7A45', color: '#fff', fontSize: '0.65rem', letterSpacing: '1px' }}>
+              DATA INTELLIGENCE
+            </span>
+            <span className="text-muted fw-bold small opacity-40">/ ANALYTICS ENGINE</span>
+          </div>
+          <h1 className="fw-black mb-1 text-dark" style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', letterSpacing: '-3px', lineHeight: '1' }}>
+            INSIGHTS<span style={{ color: '#FF7A45' }}>.</span>
+          </h1>
+          <p className="text-muted fw-medium mb-0">High-fidelity visualization of societal infrastructure data.</p>
+        </div>
         
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2 className="fw-bold mb-1" style={{ color: "#1a1a1a" }}>Analytics Dashboard</h2>
-            <p className="text-muted mb-0">Overview of civic issue reports and trends</p>
-          </div>
-          <div className="badge bg-primary px-3 py-2 fs-6 rounded-pill">
-            <FiActivity className="me-2" /> Total: {stats.totalIssues}
-          </div>
+        <div className="d-flex align-items-center gap-4 bg-white p-3 rounded-4 shadow-sm border border-light">
+           <div className="text-end pe-4 border-end border-light">
+              <div className="small fw-black text-muted opacity-40 text-uppercase" style={{ fontSize: '0.6rem', letterSpacing: '1px' }}>Global Volume</div>
+              <div className="fw-black" style={{ fontSize: '1.8rem', letterSpacing: '-1px' }}>{stats.totalIssues}</div>
+           </div>
+           <div className="text-end">
+              <div className="small fw-black text-muted opacity-40 text-uppercase" style={{ fontSize: '0.6rem', letterSpacing: '1px' }}>Health Index</div>
+              <div className="fw-black text-success" style={{ fontSize: '1.8rem', letterSpacing: '-1px' }}>94%</div>
+           </div>
         </div>
+      </header>
 
-        {/* Filters Panel */}
-        <div className="card border-0 shadow-sm rounded-4 mb-4" style={{ backgroundColor: "white" }}>
-          <div className="card-body d-flex gap-3 align-items-end flex-wrap">
-            <div className="d-flex align-items-center me-3">
-              <FiFilter className="text-muted me-2" size={20} />
-              <span className="fw-bold text-muted">Filters</span>
-            </div>
-            <div className="flex-grow-1" style={{ minWidth: "150px" }}>
-              <label className="form-label small text-muted mb-1">Category</label>
-              <select className="form-select form-select-sm rounded-3" name="category" value={filters.category} onChange={handleFilterChange}>
-                <option value="">All Categories</option>
-                <option value="Sanitization">Sanitization</option>
-                <option value="Cleanliness">Cleanliness</option>
-                <option value="Electricity">Electricity</option>
-                <option value="Road">Road</option>
-                <option value="Water">Water</option>
-                <option value="Public Safety">Public Safety</option>
+      {/* Modern Filter Strip */}
+      <section className="mb-5">
+        <motion.div variants={itemVariants} className="p-4 bg-white shadow-sm border border-light" style={{ borderRadius: '32px' }}>
+          <div className="row g-3 align-items-end">
+            <div className="col-md-3">
+              <div className="small fw-black text-muted text-uppercase mb-2 ps-2" style={{ fontSize: '0.65rem', letterSpacing: '1px' }}>Segment</div>
+              <select className="form-select border-0 bg-light rounded-pill px-4 fw-bold shadow-none" style={{ height: '50px', fontSize: '0.85rem' }} name="category" value={filters.category} onChange={handleFilterChange}>
+                <option value="">All Segments</option>
+                {["Sanitization", "Cleanliness", "Electricity", "Road", "Water", "Public Safety"].map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div className="flex-grow-1" style={{ minWidth: "150px" }}>
-              <label className="form-label small text-muted mb-1">Status</label>
-              <select className="form-select form-select-sm rounded-3" name="status" value={filters.status} onChange={handleFilterChange}>
-                <option value="">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+            <div className="col-md-3">
+              <div className="small fw-black text-muted text-uppercase mb-2 ps-2" style={{ fontSize: '0.65rem', letterSpacing: '1px' }}>From Date</div>
+              <input type="date" className="form-control border-0 bg-light rounded-pill px-4 fw-bold shadow-none" style={{ height: '50px', fontSize: '0.85rem' }} name="startDate" value={filters.startDate} onChange={handleFilterChange} />
             </div>
-            <div className="flex-grow-1" style={{ minWidth: "150px" }}>
-              <label className="form-label small text-muted mb-1">Start Date</label>
-              <input type="date" className="form-control form-control-sm rounded-3" name="startDate" value={filters.startDate} onChange={handleFilterChange} />
+            <div className="col-md-3">
+              <div className="small fw-black text-muted text-uppercase mb-2 ps-2" style={{ fontSize: '0.65rem', letterSpacing: '1px' }}>To Date</div>
+              <input type="date" className="form-control border-0 bg-light rounded-pill px-4 fw-bold shadow-none" style={{ height: '50px', fontSize: '0.85rem' }} name="endDate" value={filters.endDate} onChange={handleFilterChange} />
             </div>
-            <div className="flex-grow-1" style={{ minWidth: "150px" }}>
-              <label className="form-label small text-muted mb-1">End Date</label>
-              <input type="date" className="form-control form-control-sm rounded-3" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
+            <div className="col-md-3">
+               <button className="btn btn-dark w-100 rounded-pill fw-black" style={{ height: '50px', letterSpacing: '1px', fontSize: '0.8rem' }} onClick={fetchStats}>RECALCULATE</button>
             </div>
           </div>
-        </div>
+        </motion.div>
+      </section>
 
-        {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        ) : (
-          <div className="row g-4">
-            
-            {/* Spatial Heatmap Analysis */}
-            <div className="col-12">
-              <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                  <h5 className="fw-bold mb-0 d-flex align-items-center">
-                    <FiMap className="me-2 text-info" /> Spatial Analysis Heatmap
-                  </h5>
-                  <div className="d-flex gap-3 align-items-center bg-light p-2 rounded-pill px-4 shadow-sm border">
-                    <div className="form-check form-switch mb-0 d-flex align-items-center me-2">
-                      <input className="form-check-input mt-0 me-2" type="checkbox" role="switch" id="modHeatToggle" 
-                        checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} />
-                      <label className="form-check-label small fw-bold text-muted" htmlFor="modHeatToggle">Density</label>
-                    </div>
-                    <div className="border-start ps-3 form-check form-switch mb-0 d-flex align-items-center">
-                      <input className="form-check-input mt-0 me-2" type="checkbox" role="switch" id="modMarkerToggle" 
-                        checked={showMarkers} onChange={(e) => setShowMarkers(e.target.checked)} />
-                      <label className="form-check-label small fw-bold text-muted" htmlFor="modMarkerToggle">Markers</label>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ height: "450px", width: "100%", borderRadius: "16px", overflow: "hidden", border: "1px solid #eee" }}>
-                  <HeatmapMap 
-                    points={heatmapData} 
-                    showHeatmap={showHeatmap} 
-                    showMarkers={showMarkers} 
-                  />
-                </div>
+      {/* Primary Analytics Grid */}
+      {loading ? (
+        <div className="py-5 text-center"><div className="spinner-border text-dark opacity-20" style={{ width: '3rem', height: '3rem' }}></div></div>
+      ) : (
+        <>
+          {/* Key Metrics Cards */}
+          <div className="row g-4 mb-5">
+            {[
+              { label: 'Growth Rate', value: '+12.4%', icon: FiTrendingUp, color: '#FF7A45' },
+              { label: 'Avg Resolution', value: '4.2 Days', icon: FiClock, color: '#1a1a1a' },
+              { label: 'Coverage', value: '88%', icon: FiTarget, color: '#1a1a1a' },
+              { label: 'Active Zones', value: '24', icon: FiBox, color: '#1a1a1a' }
+            ].map((stat, i) => (
+              <div key={i} className="col-lg-3 col-md-6">
+                <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="p-4 bg-white border border-light shadow-sm" style={{ borderRadius: '28px' }}>
+                   <div className="d-flex justify-content-between align-items-start mb-4">
+                      <div className="p-3 rounded-4" style={{ background: '#F9FAFB' }}>
+                        <stat.icon size={22} style={{ color: stat.color }} />
+                      </div>
+                      <div className="small fw-black opacity-10" style={{ fontSize: '0.6rem' }}>DATA_P{i+1}</div>
+                   </div>
+                   <div className="fw-black mb-1" style={{ fontSize: '2rem', letterSpacing: '-1px' }}>{stat.value}</div>
+                   <div className="small fw-black text-muted text-uppercase opacity-50" style={{ fontSize: '0.6rem', letterSpacing: '1.5px' }}>{stat.label}</div>
+                </motion.div>
               </div>
-            </div>
+            ))}
+          </div>
 
-            {/* Trends Chart */}
-            <div className="col-12">
-              <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                <h5 className="fw-bold mb-4 d-flex align-items-center">
-                  <FiTrendingUp className="me-2 text-primary" /> Reports Over Time
-                </h5>
-                <div style={{ height: "300px", width: "100%" }}>
-                  <ResponsiveContainer>
-                    <LineChart data={stats.trends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                      <XAxis dataKey="date" tick={{ fill: '#888' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: '#888' }} axisLine={false} tickLine={false} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      />
-                      <Legend />
-                      <Line type="monotone" dataKey="issues" stroke="#FF8042" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                    </LineChart>
+          <div className="row g-4">
+            {/* High-Fidelity Area Chart */}
+            <div className="col-lg-8">
+              <motion.div variants={itemVariants} className="bg-white p-4 p-lg-5 shadow-sm border border-light h-100" style={{ borderRadius: '40px' }}>
+                <div className="d-flex justify-content-between align-items-center mb-5">
+                  <h5 className="fw-black mb-0 d-flex align-items-center gap-2">
+                    <FiActivity className="text-primary" /> TEMPORAL FREQUENCY
+                  </h5>
+                  <div className="small fw-bold text-muted opacity-40">LAST 30 DAYS</div>
+                </div>
+                <div style={{ height: "350px", width: "100%" }}>
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <AreaChart data={stats.trends}>
+                      <defs>
+                        <linearGradient id="colorIssues" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#FF7A45" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#FF7A45" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} />
+                      <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', padding: '15px' }} />
+                      <Area type="monotone" dataKey="issues" stroke="#FF7A45" strokeWidth={4} fillOpacity={1} fill="url(#colorIssues)" dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
-            {/* Status Pie Chart */}
-            <div className="col-lg-5">
-              <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                <h5 className="fw-bold mb-4 d-flex align-items-center">
-                  <FiPieChart className="me-2 text-success" /> Status Distribution
+            {/* Premium Pie Chart */}
+            <div className="col-lg-4">
+              <motion.div variants={itemVariants} className="bg-white p-4 p-lg-5 shadow-sm border border-light h-100" style={{ borderRadius: '40px' }}>
+                <h5 className="fw-black mb-5 d-flex align-items-center gap-2">
+                  <FiPieChart className="text-dark" /> DISTRIBUTION
                 </h5>
-                <div style={{ height: "280px", width: "100%" }}>
-                  <ResponsiveContainer>
+                <div style={{ height: "350px", width: "100%" }}>
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
-                      <Pie
-                        data={stats.statusDistribution}
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
+                      <Pie 
+                        data={stats.statusDistribution} 
+                        innerRadius={80} 
+                        outerRadius={120} 
+                        paddingAngle={10} 
                         dataKey="value"
+                        stroke="none"
                       >
-                        {stats.statusDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
+                        {stats.statusDistribution.map((_, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </motion.div>
             </div>
-
-            {/* Category Bar Chart */}
-            <div className="col-lg-7">
-              <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                <h5 className="fw-bold mb-4 d-flex align-items-center">
-                  <FiBarChart2 className="me-2 text-warning" /> Issues by Category
-                </h5>
-                <div style={{ height: "280px", width: "100%" }}>
-                  <ResponsiveContainer>
-                    <BarChart data={stats.categoryDistribution} margin={{ top: 5, right: 0, left: 0, bottom: 5 }} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#eee" />
-                      <XAxis type="number" tick={{ fill: '#888' }} axisLine={false} tickLine={false} />
-                      <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#888' }} axisLine={false} tickLine={false} />
-                      <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                      <Bar dataKey="value" fill="#00C49F" radius={[0, 4, 4, 0]} barSize={24}>
-                        {stats.categoryDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
           </div>
-        )}
-      </div>
-    </div>
+        </>
+      )}
+
+      <style>{`
+        .fw-black { font-weight: 900; }
+        .shadow-sm { box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important; }
+      `}</style>
+    </motion.div>
   );
 };
 

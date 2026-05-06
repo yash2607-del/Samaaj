@@ -7,7 +7,7 @@ import Complaint from "../models/complaint.js";
 import Department from "../models/Department.js";
 import auth from "../middleware/auth.js";
 import notifyOnComplaintCreate from "../utils/notifyOnComplaintCreate.js";
-import { predictIssueFromImagePath, assessPredictionReliability } from '../utils/mlImageValidation.js';
+import { assertComplaintImageContext } from '../services/ml/mlImageValidation.js';
 
 const router = express.Router();
 
@@ -33,11 +33,10 @@ const ACCEPTED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/web
 
 const toMlReviewStatus = (decision) => {
   const d = String(decision || '').trim().toLowerCase();
-  if (d === 'verified') return 'Verified';
-  if (d === 'needs_review') return 'Pending Review';
-  if (d === 'uncertain') return 'Manual Check';
-  if (d === 'unclear') return 'Rejected';
-  return '';
+  if (d === 'verified') return 'Verified by AI';
+  if (d === 'needs_review') return 'Submitted for Review';
+  if (d === 'quarantined' || d === 'unclear') return 'Flagged for Manual Check';
+  return 'Submitted for Review';
 };
 
 const safelyDeleteUploadedFile = async (filePath) => {
@@ -108,11 +107,14 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
 
     const imagePath = path.join(uploadsDir, req.file.filename);
 
-    let predictionResult;
+    let validationResult;
     try {
-      predictionResult = await predictIssueFromImagePath({
+      validationResult = await assertComplaintImageContext({
         imagePath,
-        originalName: req.file.originalname || req.file.filename
+        originalName: req.file.originalname || req.file.filename,
+        category: req.body.category || 'Other', // report.js doesn't strictly require category in req.body, so default to Other
+        title,
+        description: description || ""
       });
     } catch (serviceError) {
       await safelyDeleteUploadedFile(req.file.path);
@@ -120,16 +122,16 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
       return res.status(502).json({ message: "ML service unavailable", detail });
     }
 
-    const reliability = assessPredictionReliability(predictionResult);
-    if (!reliability.ok) {
+    if (!validationResult.ok) {
       await safelyDeleteUploadedFile(req.file.path);
-      if (reliability.reason === 'low_confidence') {
-        return res.status(400).json({ message: 'Image is unclear for reliable verification. Please upload a clearer image.' });
-      }
-      return res.status(400).json({ message: 'Image appears unrelated or ambiguous for civic issue detection. Please upload a focused issue photo.' });
+      return res.status(400).json({ 
+        message: validationResult.reportTag === 'quarantined' 
+          ? 'Image appears unrelated or ambiguous for civic issue detection. Please upload a focused photo.'
+          : 'Image is unclear for reliable verification. Please upload a clearer image.' 
+      });
     }
 
-    const { prediction, confidence, decision, modelOutputs } = predictionResult;
+    const { prediction, confidence, decision, modelOutputs, trustScore } = validationResult;
     const mlDecision = String(decision || '').trim().toLowerCase();
     const mlReviewStatus = toMlReviewStatus(mlDecision);
 
