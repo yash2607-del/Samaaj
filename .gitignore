@@ -24,6 +24,8 @@ ENV/
 *.h5
 *.pt
 *.pth
+!samaaj-civic-classifier/*.keras
+!samaaj-civic-classifier/*.h5
 
 ml_service/models/
 mysamaaj_ai/artifacts/
