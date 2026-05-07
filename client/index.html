@@ -25,6 +25,36 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Force Cache Invalidation -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <script>
+      // One-time Nuclear Cache Clear for Deployment v5
+      (function() {
+        const VERSION = 'Samaaj_v5_Force_Reload';
+        if (localStorage.getItem('DEPLOY_VERSION') !== VERSION) {
+          console.warn('New Version Detected: Performing Nuclear Cache Clear...');
+          localStorage.clear();
+          sessionStorage.clear();
+          if (window.caches) {
+            caches.keys().then(names => {
+              for (let name of names) caches.delete(name);
+            });
+          }
+          if (navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+              for (let reg of regs) reg.unregister();
+            });
+          }
+          localStorage.setItem('DEPLOY_VERSION', VERSION);
+          // Hard reload from server
+          window.location.reload(true);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

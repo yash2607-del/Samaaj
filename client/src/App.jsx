@@ -24,6 +24,7 @@ import ModeratorHeatmap from "./pages/Analytics/ModeratorHeatmap";
 import PortalLayout from "./components/layout/PortalLayout";
 
 function App() {
+  console.log("App Module Load: v5-Final-Fix");
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; }
   });
