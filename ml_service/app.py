@@ -63,18 +63,27 @@ def load_all_models():
             cnn_path = hf_hub_download(repo_id=HF_REPO, filename="civic_issue_model.keras")
         
         if cnn_path:
+            # Keras 3 is picky about extensions. If it's a .dat (H5 bypass), 
+            # we must treat it as .h5 for loading to work.
+            actual_load_path = cnn_path
+            if cnn_path.endswith(".dat"):
+                import shutil
+                actual_load_path = cnn_path.replace(".dat", "_load.h5")
+                if not os.path.exists(actual_load_path):
+                    shutil.copy(cnn_path, actual_load_path)
+            
             try:
                 # Strategy 1: Standard load
-                models["cnn"] = load_model(cnn_path)
+                models["cnn"] = load_model(actual_load_path)
             except Exception as e:
-                print(f"⚠️ Standard load failed, trying compile=False: {e}")
+                print(f"⚠️ Standard load failed, trying compile=False: {e}", flush=True)
                 try:
-                    # Strategy 2: Without compilation (fixes many format issues)
-                    models["cnn"] = load_model(cnn_path, compile=False)
+                    # Strategy 2: Without compilation
+                    models["cnn"] = load_model(actual_load_path, compile=False)
                 except Exception as e2:
-                    print(f"❌ All load strategies failed for CNN: {e2}")
+                    print(f"❌ All load strategies failed for CNN: {e2}", flush=True)
                     raise e2
-            print("✅ CNN loaded successfully")
+            print("✅ CNN loaded successfully", flush=True)
     except Exception as e:
         print(f"❌ CNN load failed: {e}")
         # Try HF as fallback if local failed
@@ -103,14 +112,20 @@ def load_all_models():
                 pass
         
         if pt_path:
+            actual_pt_path = pt_path
+            if pt_path.endswith(".dat"):
+                import shutil
+                actual_pt_path = pt_path.replace(".dat", "_pt_load.h5")
+                if not os.path.exists(actual_pt_path):
+                    shutil.copy(pt_path, actual_pt_path)
             try:
-                models["pretrained"] = load_model(pt_path)
+                models["pretrained"] = load_model(actual_pt_path)
             except:
                 try:
-                    models["pretrained"] = load_model(pt_path, compile=False)
+                    models["pretrained"] = load_model(actual_pt_path, compile=False)
                 except:
                     pass
-            print("✅ Pretrained loaded successfully")
+            print("✅ Pretrained loaded successfully", flush=True)
     except Exception as e:
         print(f"⚠️ Pretrained not available: {e}")
         
