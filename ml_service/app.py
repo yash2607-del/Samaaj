@@ -22,9 +22,13 @@ HF_REPO = "dishiii/samaaj-civic-classifier"
 
 def load_all_models():
     models = {}
-    # Use absolute path to project root
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    local_dir = os.path.join(project_root, "samaaj-civic-classifier")
+    # Try multiple possible directories for flexibility
+    local_dirs = [
+        os.path.join(project_root, "models_data"),
+        os.path.join(project_root, "samaaj-civic-classifier")
+    ]
+    
+    local_dir = next((d for d in local_dirs if os.path.exists(d)), local_dirs[0])
     
     # Ensure local_dir exists
     if not os.path.exists(local_dir):
@@ -43,8 +47,8 @@ def load_all_models():
     # 1. Try CNN
     try:
         cnn_path = None
-        # Try .h5 first (since we renamed it), then .keras
-        for ext in [".h5", ".keras"]:
+        # Try .dat (renamed to bypass LFS), .h5, then .keras
+        for ext in [".dat", ".h5", ".keras"]:
             local_cnn = os.path.abspath(os.path.join(local_dir, f"civic_issue_model{ext}"))
             if os.path.exists(local_cnn):
                 print(f"✅ Found CNN locally at: {local_cnn}")
@@ -83,7 +87,7 @@ def load_all_models():
     # 2. Try Pretrained
     try:
         pt_path = None
-        for ext in [".h5", ".keras"]:
+        for ext in [".dat", ".h5", ".keras"]:
             local_pt = os.path.abspath(os.path.join(local_dir, f"pretrained_model{ext}"))
             if os.path.exists(local_pt):
                 pt_path = local_pt
