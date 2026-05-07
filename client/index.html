@@ -32,26 +32,38 @@
     <meta http-equiv="Expires" content="0">
 
     <script>
-      // One-time Nuclear Cache Clear for Deployment v5
+      // Aggressive Nuclear Cache Clear v6
       (function() {
-        const VERSION = 'Samaaj_v5_Force_Reload';
+        const VERSION = 'Samaaj_v6_Purge_Final';
         if (localStorage.getItem('DEPLOY_VERSION') !== VERSION) {
-          console.warn('New Version Detected: Performing Nuclear Cache Clear...');
+          console.warn('CRITICAL: New Version v6. Purging everything...');
+          
+          // Clear all storage
           localStorage.clear();
           sessionStorage.clear();
+          
+          // Kill all Caches
           if (window.caches) {
             caches.keys().then(names => {
               for (let name of names) caches.delete(name);
             });
           }
+          
+          // Kill all Service Workers
           if (navigator.serviceWorker) {
             navigator.serviceWorker.getRegistrations().then(regs => {
-              for (let reg of regs) reg.unregister();
+              for (let reg of regs) {
+                reg.unregister().then(() => console.log('SW Unregistered'));
+              }
             });
           }
+          
           localStorage.setItem('DEPLOY_VERSION', VERSION);
-          // Hard reload from server
-          window.location.reload(true);
+          
+          // Force a clean reload from the server, bypassing cache
+          setTimeout(() => {
+            window.location.href = window.location.origin + '/?t=' + Date.now();
+          }, 500);
         }
       })();
     </script>
