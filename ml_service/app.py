@@ -33,6 +33,12 @@ def load_all_models():
             print(f"📁 Project root contents: {os.listdir(project_root)}")
         except:
             pass
+    else:
+        print(f"✅ Local model directory found: {local_dir}")
+        try:
+            print(f"📁 Local dir contents: {os.listdir(local_dir)}")
+        except Exception as e:
+            print(f"❌ Could not list local dir: {e}")
 
     # 1. Try CNN
     try:
