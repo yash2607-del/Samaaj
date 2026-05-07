@@ -4,6 +4,11 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// Dummy constant to force bundle hash change for deployment verification
+const DEPLOYMENT_VERSION = "2026-05-07-v4";
+console.log("Samaaj Version:", DEPLOYMENT_VERSION);
+
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     for (let registration of registrations) {
