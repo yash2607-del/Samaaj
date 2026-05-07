@@ -20,6 +20,8 @@ app = FastAPI(title="Samaaj AI Service")
 
 HF_REPO = "dishiii/samaaj-civic-classifier"
 
+def load_all_models():
+    models = {}
     # Use absolute path to project root
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
