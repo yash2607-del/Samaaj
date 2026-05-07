@@ -13,7 +13,7 @@ function ModeratorSidebar({ isCollapsed, setIsCollapsed }) {
     { path: "/moderator-dashboard", label: "Dashboard", icon: FiHome },
     { path: "/moderator-complaints", label: "Complaints", icon: FiClipboard },
     { path: "/analytics", label: "Analytics", icon: FiBarChart2 },
-    { path: "/moderator-heatmap", label: "Spatial Map", icon: FiMapPin },
+    { path: "/moderator-heatmap", label: "Spatial Map", icon: FiMap },
   ];
 
   const handleLogout = () => {
