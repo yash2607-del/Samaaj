@@ -29,6 +29,10 @@ def load_all_models():
     # Ensure local_dir exists
     if not os.path.exists(local_dir):
         print(f"⚠️ Local model directory not found: {local_dir}")
+        try:
+            print(f"📁 Project root contents: {os.listdir(project_root)}")
+        except:
+            pass
 
     # 1. Try CNN
     try:
