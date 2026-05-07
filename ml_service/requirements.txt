@@ -1,8 +1,8 @@
-tensorflow-cpu
+tensorflow-cpu>=2.16.0
 numpy<2.0.0
 pillow
 fastapi
 uvicorn
 python-multipart
 huggingface_hub
-keras
+keras>=3.14.0
