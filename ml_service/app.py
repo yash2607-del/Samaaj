@@ -35,17 +35,17 @@ def load_all_models():
     
     # Ensure local_dir exists
     if not os.path.exists(local_dir):
-        print(f"⚠️ Local model directory not found: {local_dir}")
+        print(f"⚠️ Local model directory not found: {local_dir}", flush=True)
         try:
-            print(f"📁 Project root contents: {os.listdir(project_root)}")
+            print(f"📁 Project root contents: {os.listdir(project_root)}", flush=True)
         except:
             pass
     else:
-        print(f"✅ Local model directory found: {local_dir}")
+        print(f"✅ Local model directory found: {local_dir}", flush=True)
         try:
-            print(f"📁 Local dir contents: {os.listdir(local_dir)}")
+            print(f"📁 Local dir contents: {os.listdir(local_dir)}", flush=True)
         except Exception as e:
-            print(f"❌ Could not list local dir: {e}")
+            print(f"❌ Could not list local dir: {e}", flush=True)
 
     # 1. Try CNN
     try:
@@ -116,8 +116,15 @@ def load_all_models():
         
     return models
 
-# Initialize models
-MODELS = load_all_models()
+# Global variable to hold models
+MODELS = {}
+
+@app.on_event("startup")
+async def startup_event():
+    global MODELS
+    print("🚀 ML Service starting up...", flush=True)
+    MODELS = load_all_models()
+    print(f"✅ Startup complete. Models loaded: {list(MODELS.keys())}", flush=True)
 
 @app.post("/predict")
 async def predict(
