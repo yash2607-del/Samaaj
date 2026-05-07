@@ -5,7 +5,7 @@ import App from "./App";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 // Dummy constant to force bundle hash change for deployment verification
-const DEPLOYMENT_VERSION = "2026-05-07-v5-CLEAN";
+const DEPLOYMENT_VERSION = "2026-05-07-v6-PURGE-COMPLETE";
 console.log("Samaaj Version:", DEPLOYMENT_VERSION);
 
 
