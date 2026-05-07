@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import API from "../../api/api.js";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  FiMapPin, FiUpload, FiAlertCircle, FiCheckCircle, 
+  FiUpload, FiAlertCircle, FiCheckCircle, 
   FiSend, FiArrowLeft, FiEye, FiType, FiLayers, FiInfo
 } from 'react-icons/fi';
+import { MapPin } from 'lucide-react';
 
 const categories = ["Sanitization", "Electricity", "Road", "Water", "Public Safety", "Public Works"];
 
@@ -200,7 +201,7 @@ const Create = () => {
             <hr className="my-5 opacity-5" />
 
             <h5 className="fw-black mb-4 d-flex align-items-center gap-2">
-              <FiMapPin className="text-danger" /> GEOSPATIAL DATA
+              <MapPin className="text-danger" /> GEOSPATIAL DATA
             </h5>
 
             <div className="mb-4">

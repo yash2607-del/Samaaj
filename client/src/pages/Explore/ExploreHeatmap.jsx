@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiMap, FiList, FiFilter, FiLayers, FiActivity, FiMapPin } from 'react-icons/fi';
+import { FiMap, FiList, FiFilter, FiLayers, FiActivity } from 'react-icons/fi';
+import { MapPin } from 'lucide-react';
 import API from '../../api/api.js';
 import HeatmapMap from '../../components/HeatmapMap';
 import { motion } from 'framer-motion';
@@ -120,7 +121,7 @@ const ExploreHeatmap = () => {
                            <span className="text-muted fw-bold small" style={{ fontSize: '0.65rem' }}>{p.category?.toUpperCase() || 'GENERAL'}</span>
                         </div>
                         <div className="d-flex align-items-center gap-2 text-dark small fw-bold">
-                           <FiMapPin size={12} className="text-danger" />
+                           <MapPin size={12} className="text-danger" />
                            <span className="text-truncate">{p.district || 'Localized Issue'}</span>
                         </div>
                      </motion.div>

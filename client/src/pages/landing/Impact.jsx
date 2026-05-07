@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { motion } from 'framer-motion';
-import { FiTrendingUp, FiCheckCircle, FiUsers, FiMapPin } from 'react-icons/fi';
+import { FiTrendingUp, FiCheckCircle, FiUsers } from 'react-icons/fi';
+import { MapPin } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import SplitText from '../../components/ui/SplitText';
 
@@ -15,7 +16,7 @@ const Impact = () => {
     { num: "12,400+", label: "Issues Resolved", icon: <FiCheckCircle /> },
     { num: "45,000+", label: "Active Citizens", icon: <FiUsers /> },
     { num: "92%", label: "Resolution Rate", icon: <FiTrendingUp /> },
-    { num: "180+", label: "Neighborhoods", icon: <FiMapPin /> }
+    { num: "180+", label: "Neighborhoods", icon: <MapPin /> }
   ];
 
   return (

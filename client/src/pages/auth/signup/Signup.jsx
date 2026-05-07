@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { FiUser, FiMail, FiLock, FiMapPin, FiTag, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiTag, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
+import { MapPin } from 'lucide-react';
 
 function Signup() {
   const [role, setRole] = useState("Citizen");
@@ -206,7 +207,7 @@ function Signup() {
               <div style={{ marginBottom: '2rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>District (Delhi)</label>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
-                  <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiMapPin /></span>
+                  <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><MapPin /></span>
                   <input
                     type="text"
                     placeholder="e.g., South Delhi"
@@ -242,7 +243,7 @@ function Signup() {
                 <div style={{ marginBottom: '2rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1A1A1A', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Assigned District/Zone (Delhi)</label>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EAEAEA', backgroundColor: '#FFF' }}>
-                    <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><FiMapPin /></span>
+                    <span style={{ padding: '0.8rem', color: '#888', display: 'flex' }}><MapPin /></span>
                     <input
                       type="text"
                       placeholder="e.g., South Delhi"

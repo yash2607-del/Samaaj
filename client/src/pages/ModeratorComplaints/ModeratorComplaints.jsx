@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import API from "../../api/api.js";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiAlertCircle, FiCheckCircle, FiClock, FiInbox, FiMapPin,
+  FiAlertCircle, FiCheckCircle, FiClock, FiInbox,
   FiRefreshCw, FiTag, FiCalendar, FiEye, FiCamera, FiFileText,
   FiSend, FiChevronRight, FiFilter, FiActivity
 } from "react-icons/fi";
+import { MapPin } from "lucide-react";
 
 const statusMeta = {
   Pending: { color: "#FF7A45", bg: "rgba(255,122,69,0.1)", icon: FiClock },
@@ -157,7 +158,7 @@ export default function ModeratorComplaints() {
                     </div>
                     <h5 className="fw-black text-dark mb-3 text-truncate">{c.title}</h5>
                     <div className="d-flex align-items-center gap-2 text-muted small mb-4">
-                       <FiMapPin size={14} className="text-danger" />
+                       <MapPin size={14} className="text-danger" />
                        <span className="text-truncate">{c.district}</span>
                     </div>
 

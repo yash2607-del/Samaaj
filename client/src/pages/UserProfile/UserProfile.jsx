@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiUser, FiMail, FiMapPin, FiCalendar, FiFileText, FiArrowLeft, FiActivity, FiShield } from "react-icons/fi";
+import { FiUser, FiMail, FiCalendar, FiFileText, FiArrowLeft, FiActivity, FiShield } from "react-icons/fi";
+import { MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 
 const UserProfile = () => {
@@ -79,7 +80,7 @@ const UserProfile = () => {
                      </div>
                   </div>
                   <div className="d-flex align-items-center gap-3">
-                     <div className="p-3 rounded-circle bg-light"><FiMapPin className="text-danger" /></div>
+                     <div className="p-3 rounded-circle bg-light"><MapPin className="text-danger" /></div>
                      <div>
                         <div className="small text-muted fw-bold">PRIMARY REGION</div>
                         <div className="fw-black text-dark">{profile?.location || 'New Delhi'}</div>

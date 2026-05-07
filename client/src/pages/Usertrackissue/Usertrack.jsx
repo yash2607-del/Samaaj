@@ -11,7 +11,6 @@ import {
   FiCheckCircle,
   FiClock,
   FiInbox,
-  FiMapPin,
   FiRefreshCw,
   FiTag,
   FiCalendar,
@@ -22,6 +21,7 @@ import {
   FiChevronRight,
   FiTrash2
 } from "react-icons/fi";
+import { MapPin } from "lucide-react";
 
 const statusMeta = {
   Pending: {
@@ -282,7 +282,7 @@ export default function Usertrack() {
                         {issue.title || "Untitled Complaint"}
                       </h5>
                       <div className="d-flex align-items-center gap-2 text-muted mb-4" style={{ fontSize: '0.85rem' }}>
-                        <FiMapPin size={14} color="#FF7A45" />
+                        <MapPin size={14} color="#FF7A45" />
                         <span className="text-truncate">{issue.location || "Location not set"}</span>
                       </div>
                       

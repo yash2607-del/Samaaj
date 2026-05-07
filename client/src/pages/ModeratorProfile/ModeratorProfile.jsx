@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { toastError } from "../../utils/toast";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiUser, FiMail, FiTag, FiCalendar, FiFileText, FiMapPin, FiPhone, FiShield, FiBriefcase, FiArrowLeft } from 'react-icons/fi';
+import { FiUser, FiMail, FiTag, FiCalendar, FiFileText, FiPhone, FiShield, FiBriefcase, FiArrowLeft } from 'react-icons/fi';
+import { MapPin } from 'lucide-react';
 import { motion } from "framer-motion";
 
 const ModeratorProfile = () => {
@@ -101,7 +102,7 @@ const ModeratorProfile = () => {
                  <div className="col-md-6">
                     <div className="small fw-black text-muted text-uppercase mb-3" style={{ letterSpacing: '1px' }}>Operational Scope</div>
                     <div className="d-flex align-items-center gap-3 mb-4">
-                       <div className="p-3 rounded-circle bg-light"><FiMapPin className="text-danger" /></div>
+                       <div className="p-3 rounded-circle bg-light"><MapPin className="text-danger" /></div>
                        <div>
                           <div className="small text-muted fw-bold">COVERAGE AREAS</div>
                           <div className="fw-black text-dark">{departmentInfo?.coverageAreas?.join(', ') || 'All Regions'}</div>

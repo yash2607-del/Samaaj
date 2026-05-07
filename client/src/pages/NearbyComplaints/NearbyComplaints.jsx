@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   FiCheckCircle, FiClock, 
   FiSearch, FiFilter, FiAlertCircle, 
-  FiMapPin, FiInbox, FiThumbsUp, FiThumbsDown,
+  FiInbox, FiThumbsUp, FiThumbsDown,
   FiChevronRight, FiX, FiActivity, FiMap
 } from 'react-icons/fi';
+import { MapPin } from 'lucide-react';
 
 const categories = ["All", "Sanitization", "Cleanliness", "Electricity", "Road", "Water", "Public Safety"];
 
@@ -59,7 +60,7 @@ const NearbyComplaints = () => {
       <header className="mb-5 d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
         <div>
           <div className="d-flex align-items-center gap-2 mb-2">
-            <FiMapPin className="text-danger" size={20} />
+            <MapPin className="text-danger" size={20} />
             <span className="text-muted fw-bold small text-uppercase" style={{ letterSpacing: '1px' }}>{userDistrict}</span>
           </div>
           <h1 className="fw-black mb-1 text-dark" style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', letterSpacing: '-2px', lineHeight: '1' }}>

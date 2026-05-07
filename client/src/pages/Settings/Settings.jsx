@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { FiUser, FiMail, FiMapPin, FiLock, FiSave } from "react-icons/fi";
+import { FiUser, FiMail, FiLock, FiSave } from "react-icons/fi";
+import { MapPin } from "lucide-react";
 import API from "../../api/axios.js";
 import "./Settings.css";
 
@@ -154,7 +155,7 @@ function Settings() {
 
             <div className="form-group">
               <label htmlFor="location">
-                <FiMapPin /> Location/District
+                <MapPin /> Location/District
               </label>
               <input
                 type="text"
