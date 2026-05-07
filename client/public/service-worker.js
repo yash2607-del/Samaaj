@@ -1,4 +1,4 @@
-const CACHE_NAME = 'samaaj-v2';
+const CACHE_NAME = 'samaaj-v3';
 const urlsToCache = [
   '/',
   '/index.html',

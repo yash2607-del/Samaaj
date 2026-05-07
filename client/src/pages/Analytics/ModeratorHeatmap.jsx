@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiMap, FiLayers, FiFilter, FiActivity, FiMapPin, FiArrowLeft } from 'react-icons/fi';
+import { FiMap, FiLayers, FiFilter, FiActivity, FiArrowLeft } from 'react-icons/fi';
 import API from '../../api/api.js';
 import HeatmapMap from '../../components/HeatmapMap';
 import { motion } from 'framer-motion';

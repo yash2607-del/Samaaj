@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { FiCheckCircle, FiMapPin, FiUsers, FiTrendingUp, FiArrowRight } from 'react-icons/fi';
+import { FiCheckCircle, FiUsers, FiTrendingUp, FiArrowRight } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import TiltedCard from '../../components/ui/TiltedCard';
 import BlurText from '../../components/ui/BlurText';

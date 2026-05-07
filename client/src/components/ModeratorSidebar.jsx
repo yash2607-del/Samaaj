@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FiHome, FiClipboard, FiUser, FiLogOut, FiGrid, FiSettings, FiBarChart2, FiChevronRight, FiChevronUp, FiMap, FiMapPin } from 'react-icons/fi';
+import { FiHome, FiClipboard, FiUser, FiLogOut, FiGrid, FiSettings, FiBarChart2, FiChevronRight, FiChevronUp, FiMap } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import "./CitizenSidebar.css";
 
