@@ -28,27 +28,40 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- Service Worker disabled to prevent stale cache issues
     <script>
-      const isLocalDevHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-      if ('serviceWorker' in navigator && !isLocalDevHost) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-              console.log('Service Worker registered:', registration);
-            })
-            .catch(error => {
-              console.log('Service Worker registration failed:', error);
+      // Global Emergency Fix for "FiMapPin is not defined" stale bundle errors
+      window.onerror = function(msg, url, line, col, error) {
+        if (typeof msg === 'string' && msg.indexOf('FiMapPin') !== -1) {
+          console.error('Critical Cache Error: FiMapPin detected. Purging storage and reloading...');
+          if (window.localStorage) localStorage.clear();
+          if (window.sessionStorage) sessionStorage.clear();
+          if (window.caches) {
+            caches.keys().then(names => {
+              for (let name of names) caches.delete(name);
             });
-        });
-      } else if ('serviceWorker' in navigator && isLocalDevHost) {
-        navigator.serviceWorker.getRegistrations().then((regs) => {
-          regs.forEach((reg) => reg.unregister());
+          }
+          if (navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+              for (let reg of regs) reg.unregister();
+            });
+          }
+          setTimeout(() => {
+            window.location.href = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
+          }, 100);
+          return true;
+        }
+      };
+
+      // Force unregister service worker if it exists (emergency measure)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Emergency SW Unregistration successful');
+          }
         });
       }
     </script>
-    -->
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
