@@ -30,7 +30,7 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Register Service Worker -->
+    <!-- Service Worker disabled to prevent stale cache issues
     <script>
       const isLocalDevHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
       if ('serviceWorker' in navigator && !isLocalDevHost) {
@@ -49,5 +49,6 @@
         });
       }
     </script>
+    -->
   </body>
 </html>
