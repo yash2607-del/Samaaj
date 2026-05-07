@@ -72,6 +72,15 @@ def load_all_models():
                 if not os.path.exists(actual_load_path):
                     shutil.copy(cnn_path, actual_load_path)
             
+            # Patch Keras to ignore unknown 'quantization_config' (common version mismatch)
+            from keras import layers
+            original_dense_from_config = layers.Dense.from_config
+            @classmethod
+            def patched_from_config(cls, config):
+                config.pop('quantization_config', None)
+                return original_dense_from_config(config)
+            layers.Dense.from_config = patched_from_config
+            
             try:
                 # Strategy 1: Standard load
                 models["cnn"] = load_model(actual_load_path)
@@ -131,14 +140,28 @@ def load_all_models():
         
     return models
 
-# Global variable to hold models
+# Global variable to hold models and labels
 MODELS = {}
+CLASS_NAMES = []
 
 @app.on_event("startup")
 async def startup_event():
-    global MODELS
+    global MODELS, CLASS_NAMES
     print("🚀 ML Service starting up...", flush=True)
     MODELS = load_all_models()
+    
+    # Load class names
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    local_dir = next((d for d in [os.path.join(project_root, "models_data"), os.path.join(project_root, "samaaj-civic-classifier")] if os.path.exists(d)), None)
+    
+    if local_dir:
+        cp = os.path.join(local_dir, "class_names.json")
+        if os.path.exists(cp):
+            import json
+            with open(cp, 'r') as f:
+                CLASS_NAMES = json.load(f)
+            print(f"✅ Loaded {len(CLASS_NAMES)} class names", flush=True)
+
     print(f"✅ Startup complete. Models loaded: {list(MODELS.keys())}", flush=True)
 
 @app.post("/predict")
@@ -155,9 +178,10 @@ async def predict(
         if not MODELS:
             return {"error": "ML Service Error: No models loaded. Please check service logs."}
             
-        # Inject loaded models into predictor module
+        # Inject loaded models and names into predictor module
         import core.predictor as predictor
         predictor.models = MODELS
+        predictor.class_names = CLASS_NAMES
         
         result = predict_ensemble(
             image, 
