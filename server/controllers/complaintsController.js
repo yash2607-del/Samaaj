@@ -279,7 +279,9 @@ const updateStatus = async (req, res) => {
     console.log('[complaintsController.updateStatus] called', { method: req.method, path: req.originalUrl || req.url, params: req.params, bodyKeys: Object.keys(req.body || {}), hasFile: !!req.file });
     const { complaintId } = req.params;
     const { status, moderatorEmail, actionDescription } = req.body;
-    const actionPhoto = req.file ? `/uploads/${req.file.filename}` : null;
+    const actionPhoto = req.file ? `data:${req.file.mimetype};base64,${fs.readFileSync(req.file.path).toString('base64')}` : null;
+    if (req.file) await safelyDeleteUploadedFile(req.file.path);
+
 
     const validStatuses = ["Pending", "In Progress", "Resolved", "Rejected"];
     if (!validStatuses.includes(status)) {
@@ -563,9 +565,17 @@ const createComplaint = async (req, res) => {
       console.warn(`[ML Validation] Non-ideal result: ${validationResult.reason}. Proceeding with soft flagging.`);
     }
 
-    const photoPath = `/uploads/${req.file.filename}`;
+    // Convert image to Base64 for persistent storage on Vercel
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const base64Image = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
+    const photoPath = base64Image;
+    
     const imageHash = await generateImageHash(req.file.path);
     const imageSource = String(body.imageSource || 'gallery').toLowerCase();
+    
+    // Clean up temporary file immediately
+    await safelyDeleteUploadedFile(req.file.path);
+
     
     // 1. Spam Detection: Meaningless Text
     let reportTag = validationResult.reportTag || 'clean';

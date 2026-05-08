@@ -112,9 +112,13 @@ const NearbyComplaints = () => {
               >
                 <div className="position-relative" style={{ height: '220px' }}>
                   <img 
-                    src={c.photo ? `${import.meta.env.VITE_API_BASE_URL}/${c.photo.replace(/^\//, '')}` : '/placeholder.jpg'} 
+                    src={c.photo ? (c.photo.startsWith('data:') ? c.photo : `${import.meta.env.VITE_API_BASE_URL}/${c.photo.replace(/^\//, '')}`) : '/placeholder.jpg'} 
                     className="w-100 h-100" style={{ objectFit: 'cover' }} 
                     alt={c.title} 
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/placeholder.jpg';
+                    }}
                   />
                   <div className="position-absolute top-0 end-0 m-3 d-flex flex-column gap-2 align-items-end">
                     <div className="px-3 py-2 rounded-pill d-flex align-items-center gap-2 shadow-lg" 
@@ -172,7 +176,14 @@ const NearbyComplaints = () => {
               className="bg-white" style={{ maxWidth: '600px', width: '100%', borderRadius: '40px', overflow: 'hidden' }}
               onClick={e => e.stopPropagation()}
             >
-               <img src={selectedComplaint.photo ? `${import.meta.env.VITE_API_BASE_URL}/${selectedComplaint.photo.replace(/^\//, '')}` : '/placeholder.jpg'} className="w-100" style={{ height: '300px', objectFit: 'cover' }} />
+               <img 
+                 src={selectedComplaint.photo ? (selectedComplaint.photo.startsWith('data:') ? selectedComplaint.photo : `${import.meta.env.VITE_API_BASE_URL}/${selectedComplaint.photo.replace(/^\//, '')}`) : '/placeholder.jpg'} 
+                 className="w-100" style={{ height: '300px', objectFit: 'cover' }} 
+                 onError={(e) => {
+                   e.target.onerror = null;
+                   e.target.src = '/placeholder.jpg';
+                 }}
+               />
                <div className="p-5">
                   <h3 className="fw-black mb-2">{selectedComplaint.title}</h3>
                   <p className="text-muted mb-4">{selectedComplaint.description}</p>

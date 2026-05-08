@@ -154,7 +154,7 @@ router.post("/", auth, upload.single("photo"), async (req, res) => {
       category,
       department: departmentId,
       userId: req.user?.id || null,
-      photo: `/uploads/${req.file.filename}`,
+      photo: `data:${req.file.mimetype};base64,${fs.readFileSync(req.file.path).toString('base64')}`,
       imageHash: validationResult.imageHash,
       mlPrediction: prediction,
       mlConfidence: Number(confidence) || 0,

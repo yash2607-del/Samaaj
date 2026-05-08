@@ -126,8 +126,12 @@ export default function ModeratorComplaints() {
               <div className="card h-100 border-0 shadow-sm overflow-hidden" style={{ borderRadius: '32px', background: '#fff', border: '1px solid rgba(0,0,0,0.04)' }}>
                   <div className="position-relative" style={{ height: '200px' }}>
                     <img 
-                      src={c.photo ? `${import.meta.env.VITE_API_BASE_URL}/${c.photo.replace(/^\//, '')}` : placeholderImg} 
+                      src={c.photo ? (c.photo.startsWith('data:') ? c.photo : `${import.meta.env.VITE_API_BASE_URL}/${c.photo.replace(/^\//, '')}`) : placeholderImg} 
                       className="w-100 h-100" style={{ objectFit: 'cover' }} alt="Issue" 
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = placeholderImg;
+                      }}
                     />
                     <div className="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
                        <div className="px-3 py-1 rounded-pill fw-black text-white shadow-lg" style={{ background: (c.trustScore || 0) < 0.4 ? '#FF3B30' : '#34C759', fontSize: '0.65rem' }}>

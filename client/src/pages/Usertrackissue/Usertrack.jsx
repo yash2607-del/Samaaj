@@ -80,7 +80,7 @@ const normalizePhotoUrl = (photoPath) => {
   const filename = (photoPath || '').split('/').pop();
   const KNOWN_MISSING = ['1766417044499-919410092.png','1766329893553-386484364.png','1766422049649-436909165.png'];
   if (KNOWN_MISSING.includes(filename)) return fallbackPic2;
-  if (/^https?:\/\//i.test(photoPath)) return photoPath;
+  if (/^https?:\/\//i.test(photoPath) || /^data:/i.test(photoPath)) return photoPath;
   const trimmed = photoPath.startsWith("/") ? photoPath.slice(1) : photoPath;
   const base = API.defaults.baseURL || "";
   return base ? `${base.replace(/\/$/, '')}/${trimmed}` : `/${trimmed}`;
