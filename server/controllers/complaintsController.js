@@ -59,33 +59,8 @@ const getDepartments = async (req, res) => {
   }
 };
 
-// Helper: remove/clear photo fields that don't exist on disk so clients don't request 404s
-const sanitizePhotoFields = (items) => {
-  try {
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const serverRoot = path.join(__dirname, '..');
-    const uploadsDir = path.join(serverRoot, 'uploads');
+// Removed sanitizePhotoFields to prevent data loss on ephemeral storage (Vercel)
 
-    const list = Array.isArray(items) ? items : [items];
-    for (const it of list) {
-      try {
-        if (!it || !it.photo) continue;
-        let p = String(it.photo || '').trim().replace(/\\/g, '/');
-        if (!p) { it.photo = ''; continue; }
-        if (p.startsWith('/')) p = p.slice(1);
-        const full = path.join(serverRoot, p);
-        if (!fs.existsSync(full)) {
-          it.photo = '';
-        }
-      } catch (e) {
-        // ignore per-item errors
-      }
-    }
-    return items;
-  } catch (e) {
-    return items;
-  }
-};
 
 const getDepartmentById = async (req, res) => {
   try {
@@ -171,7 +146,8 @@ const listComplaints = async (req, res) => {
       .sort({ trustScore: 1, createdAt: -1 })
       .lean();
 
-    complaints = sanitizePhotoFields(complaints);
+    // sanitizePhotoFields removed to preserve DB paths
+
     res.json({ data: complaints });
   } catch (error) {
     console.error('Error fetching complaints:', error);
@@ -289,7 +265,8 @@ const moderatorView = async (req, res) => {
       }
 
       // sanitize photos before sending
-      complaints = sanitizePhotoFields(complaints);
+      // sanitizePhotos removed to preserve DB paths
+
       res.json(complaints);
   } catch (error) {
     console.error('Error fetching moderator complaints:', error);
@@ -432,7 +409,8 @@ const updateStatus = async (req, res) => {
     }
 
     const populated = await Complaint.findById(complaint._id).populate('assignedTo', 'name email').populate('department', 'name').lean();
-    sanitizePhotoFields(populated);
+    // sanitizePhotoFields removed
+
     res.json({ message: "Status updated successfully", complaint: populated });
   } catch (error) {
     console.error("Error updating complaint status:", error);

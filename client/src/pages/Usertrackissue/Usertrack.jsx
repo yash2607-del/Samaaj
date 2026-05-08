@@ -254,6 +254,10 @@ export default function Usertrack() {
                         className="w-100 h-100"
                         alt={issue.title}
                         style={{ objectFit: "cover" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = placeholderImg;
+                        }}
                       />
                       <div className="position-absolute top-0 end-0 m-3 d-flex flex-column gap-2">
                         <div className="px-3 py-2 rounded-pill d-flex align-items-center gap-2 shadow-lg" 
